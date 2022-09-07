@@ -8,7 +8,7 @@
 class c_PreProcess{
 private:
     st_RVA rva;
-    st_RVA GetFunctionRVA(std::map<std::string,DWORD *> &key_value){
+    st_RVA GetFunctionsRVA(std::map<std::string,DWORD *> &key_value){
         auto m_BaseAddr = (DWORD)LoadLibraryA("kernel32.dll");
         //get dos size
         long m_DosSize = *(long *)(m_BaseAddr + 0x3C);
@@ -40,15 +40,12 @@ private:
     };
 public:
     st_RVA GetRVAs(){
-        char m_Str_OpenProcess[] = "OpenProcess";
-        char m_Str_CreateRemoteThread[] = "CreateRemoteThread";
-        char m_Str_WaitForSingleObject[] = "WaitForSingleObject";
         std::map<std::string,DWORD *> p_KeyValue{
-                {m_Str_OpenProcess,&rva.OpenProcess},
-                {m_Str_CreateRemoteThread,&rva.CreateRemoteThread},
-                {m_Str_WaitForSingleObject,&rva.WaitForSingleObject}
+                {"OpenProcess",&rva.OpenProcess},
+                {"CreateRemoteThread",&rva.CreateRemoteThread},
+                {"WaitForSingleObject",&rva.WaitForSingleObject}
         };
-        return GetFunctionRVA(p_KeyValue);
+        return GetFunctionsRVA(p_KeyValue);
     }
 };
 

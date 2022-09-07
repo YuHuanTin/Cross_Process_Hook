@@ -33,6 +33,33 @@ unsigned char p_rawShellCode[] = {
         0xA6, 0xE3, 0xEA, 0x58, 0xEB, 0xDE, 0x83, 0xC4,
         0x08, 0x8B, 0x40, 0x08, 0xC3
 };
+/*
+ * 2    1024+128+0
+ * 8    1024+128+4
+ * 14   1024+128+8
+ * 20   1024+128+C
+ * 26   1024+128+10
+ * 32   1024+128+14
+ * 38   1024+128+18
+ * 44   1024+128+1C
+ *
+ * 54   arg3    OpenProcess_dwProcessId
+ * 60   arg2    OpenProcess_bInheritHandle
+ * 66   arg1    OpenProcess_dwDesiredAccess
+ * 77   arg11   RVA_OpenProcess
+ *
+ * 92   arg9    CreateRemoteThread_lpThreadId
+ * 98   arg8    CreateRemoteThread_dwCreationFlags
+ * 104  arg7    CreateRemoteThread_lpParameter
+ * 110  arg6    CreateRemoteThread_lpStartAddress
+ * 116  arg5    CreateRemoteThread_dwStackSize
+ * 122  arg4    CreateRemoteThread_lpThreadAttributes
+ * 134  arg12   RVA_CreateRemoteThread
+ *
+ * 155  arg13   RVA_WaitForSingleObject
+ *
+ * 210  arg10   ptr_DllName
+ */
 
 class c_ShellCodeMaker{
 private:

@@ -1,0 +1,9 @@
+#ifndef CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
+#define CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
+#include "PreProcess.h"
+#include "ShellCodeMaker.h"
+
+
+
+
+#endif //CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H

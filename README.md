@@ -1,1 +1,1 @@
-# A simple hook that can be used to pass messages (via createremotethread) across processes
+# A simple hook that can be used to send data (via CreateRemoteThread) across processes

@@ -1,7 +1,7 @@
 #include <algorithm>
 #include "Cross_Process_Hook.h"
 #include "TlHelp32.h"
-
+//private
 HANDLE c_ProcessHook::GetProcessHandle(const string &processName) {
     HANDLE m_hTh32 = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (m_hTh32 == nullptr){
@@ -31,17 +31,17 @@ HANDLE c_ProcessHook::GetProcessHandle(const string &processName) {
     }
 }
 LPVOID c_ProcessHook::AllocMem() {
-    LPVOID m_AllocMemAddr = VirtualAllocEx(processInfoDst.ProcessHandle, nullptr,4096,0,0);
+    LPVOID m_AllocMemAddr = VirtualAllocEx(ProcInfo_Dst.ProcessHandle, nullptr, 4096, 0, 0);
     if (m_AllocMemAddr == nullptr){
         return nullptr;
     }
     return m_AllocMemAddr;
 }
 bool c_ProcessHook::FreeMem(LPVOID hookedAddress) {
-    for (auto &ch:processInfoDst.mAllocMemAddr_HookAddr) {
-        if (ch.second == hookedAddress){
-            if (VirtualFreeEx(processInfoDst.ProcessHandle,ch.first,4096,0)){
-                processInfoDst.mAllocMemAddr_HookAddr.erase(ch.first);
+    for (auto &ch:ProcInfo_Dst.AllocMem) {
+        if (ch.second.hookedAddress == hookedAddress){
+            if (VirtualFreeEx(ProcInfo_Dst.ProcessHandle, ch.first, 4096, 0)){
+                ProcInfo_Dst.AllocMem.erase(ch.first);
                 return true;
             } else{
                 return false;
@@ -50,18 +50,22 @@ bool c_ProcessHook::FreeMem(LPVOID hookedAddress) {
     }
     return false;
 }
-
-bool c_ProcessHook::CtorHook(LPVOID hookedAddress,st_Params &params){
-    LPVOID m_AllocMem = this->AllocMem();
-    if (m_AllocMem == nullptr){
+//public
+bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen,st_wParams &params){
+    //auto alloc mem in dst proc
+    LPVOID m_AllocMemAddr = this->AllocMem();
+    if (m_AllocMemAddr == nullptr){
         return false;
     }
-    processInfoDst.mAllocMemAddr_HookAddr.insert({m_AllocMem,hookedAddress});
-    c_ShellCodeMaker shellCodeMaker(m_AllocMem,params);
+    ProcInfo_Dst.AllocMem.insert({m_AllocMemAddr,{hookedAddress,0,true,false}});
+    //ctor shellCode
+    c_ShellCodeMaker shellCodeMaker(hookedAddress);
+    shellCodeMaker.shellCode.params = params;
+
+
     return false;
 }
 bool c_ProcessHook::CommitMem() {
-    //writeProcess
 
     return false;
 }

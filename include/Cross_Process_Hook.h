@@ -1,28 +1,32 @@
 #ifndef CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
 #define CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
-#include "PreProcess.h"
+#include <string>
 #include "ShellCodeMaker.h"
 
 using std::string;
 
 class c_ProcessHook{
 private:
+    st_ProcInfo_Dst ProcInfo_Dst;
+
     HANDLE GetProcessHandle(const string &processName);
+    LPVOID AllocMem();
+    bool FreeMem(LPVOID hookedAddress);
 public:
-    st_ProcessInfo_Dst processInfoDst;
     //need low-case processName
     explicit c_ProcessHook(const string &processName){
         if (processName.length() > 0) {
-            processInfoDst.ProcessHandle = GetProcessHandle(processName);
-            if (processInfoDst.ProcessHandle == nullptr) {
+            ProcInfo_Dst.ProcessHandle = this->GetProcessHandle(processName);
+            if (ProcInfo_Dst.ProcessHandle == nullptr) {
                 printf("error:GetProcessHandle\n");
             }
         }
     }
-    LPVOID AllocMem();
-    bool FreeMem(LPVOID hookedAddress);
-    bool CtorHook(LPVOID hookedAddress,st_Params &params);
+    //ctor shellCode
+    bool CtorHook(LPVOID hookedAddress,unsigned hookedLen,st_wParams &params);
+    //commit shellCode
     bool CommitMem();
+    //delete shellCode
     bool DeleteHook();
 };
 

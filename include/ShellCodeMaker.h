@@ -3,13 +3,13 @@
 #include "Data_Struct.h"
 
 class c_ShellCodeMaker{
-private:
-    void MakeCode(LPVOID allocMemAddr, st_Params &params);
+    void MakeShellCode(LPVOID &allocMemAddr);
 public:
-    st_ShellCode shellCode;
-    explicit c_ShellCodeMaker(LPVOID allocMemAddr,st_Params &params){
-        MakeCode(allocMemAddr,params);
-    }
+    //just calc offset of params
+    st_wCode shellCode;
+    explicit c_ShellCodeMaker(LPVOID allocMemAddr){
+        MakeShellCode(allocMemAddr);
+    };
 };
 
 

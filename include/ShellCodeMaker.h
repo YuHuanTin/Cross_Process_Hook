@@ -6,7 +6,7 @@ class c_ShellCodeMaker{
     void MakeShellCode(LPVOID &allocMemAddr);
 public:
     //just calc offset of params
-    st_wCode shellCode;
+    st_wCode wCode;
     explicit c_ShellCodeMaker(LPVOID allocMemAddr){
         MakeShellCode(allocMemAddr);
     };

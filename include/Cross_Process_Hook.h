@@ -8,10 +8,9 @@ using std::string;
 class c_ProcessHook{
 private:
     st_ProcInfo_Dst ProcInfo_Dst;
-
     HANDLE GetProcessHandle(const string &processName);
     LPVOID AllocMem();
-    bool FreeMem(LPVOID hookedAddress);
+    bool FreeMem(LPVOID allocMem);
 public:
     //need low-case processName
     explicit c_ProcessHook(const string &processName){
@@ -22,12 +21,12 @@ public:
             }
         }
     }
-    //ctor shellCode
+    //ctor wCode
     bool CtorHook(LPVOID hookedAddress,unsigned hookedLen,st_wParams &params);
-    //commit shellCode
+    //commit wCode
     bool CommitMem();
-    //delete shellCode
-    bool DeleteHook();
+    //delete wCode
+    bool DeleteHook(LPVOID hookedAddress);
 };
 
 

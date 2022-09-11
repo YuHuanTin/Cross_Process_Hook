@@ -79,10 +79,10 @@ struct st_rRegister{
     DWORD edi;
 };
 struct st_rData : st_rRegister{
-    DWORD hookFrom;//jmp to the shellCode,same as hookedAddress
+    DWORD hookFrom;//jmp to the wCode,same as hookedAddress
 };
 struct st_wCode{
-    //  [shellCode][params][st_rData][reserve][backupCode]
+    //  [wCode][params][st_rData][reserve][backupCode]
     //  ^           ^       ^         ^         ^
     //  1024        76/128  32        auto      512        = 4096
     unsigned char shellCode[1024];
@@ -95,6 +95,7 @@ struct st_wCode{
 struct st_keyValue_AllocMem{
     LPVOID hookedAddress;//addr of code need to hook
     unsigned HookedCodeLen;//len of code need to hook
+    st_wCode code;
 
     bool init;
     bool used;

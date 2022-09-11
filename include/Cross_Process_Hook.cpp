@@ -40,7 +40,7 @@ bool c_ProcessHook::FreeMem(LPVOID allocMem) {
     return false;
 }
 //public
-bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen,st_wParams &params){
+bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen){
     //auto alloc mem in dst proc
     LPVOID m_AllocMemAddr = this->AllocMem();
     if (m_AllocMemAddr == nullptr){
@@ -48,8 +48,7 @@ bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen,st_wParams 
     }
     //ctor write Code
     c_ShellCodeMaker shellCodeMaker(m_AllocMemAddr);
-    params.CreateRemoteThread_lpParameter = (DWORD)m_AllocMemAddr + 1024 + 128;
-    shellCodeMaker.wCode.params = params;
+
 
 
     this->ProcInfo_Dst.AllocMem.insert({m_AllocMemAddr,{hookedAddress,hookedLen,shellCodeMaker.wCode,true,false}});
@@ -62,6 +61,7 @@ bool c_ProcessHook::CommitMem() {
 
             //write code
             SIZE_T m_NumOfWrite = 0;
+            printf("%#x\n",(unsigned )(*i).first);
             WriteProcessMemory(this->ProcInfo_Dst.ProcessHandle,(*i).first,(LPCVOID)&(*i).second.code,4096,&m_NumOfWrite);
             if (m_NumOfWrite!= 4096){
                 printf("error:%#X ,%#X\n",(unsigned)(*i).first,(unsigned)(*i).second.hookedAddress);

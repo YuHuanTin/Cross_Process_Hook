@@ -53,7 +53,6 @@ bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen,st_wParams 
 
 
     this->ProcInfo_Dst.AllocMem.insert({m_AllocMemAddr,{hookedAddress,hookedLen,shellCodeMaker.wCode,true,false}});
-
     return false;
 }
 bool c_ProcessHook::CommitMem() {
@@ -63,7 +62,6 @@ bool c_ProcessHook::CommitMem() {
 
             //write code
             SIZE_T m_NumOfWrite = 0;
-            printf("%#x\n",(unsigned)(*i).first);
             WriteProcessMemory(this->ProcInfo_Dst.ProcessHandle,(*i).first,(LPCVOID)&(*i).second.code,4096,&m_NumOfWrite);
             if (m_NumOfWrite!= 4096){
                 printf("error:%#X ,%#X\n",(unsigned)(*i).first,(unsigned)(*i).second.hookedAddress);

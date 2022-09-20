@@ -2,8 +2,9 @@
 #define CROSS_PROCESS_HOOK_DATA_STRUCT_H
 #include <map>
 #include <string>
-#include "Windows.h"
-#include "PreProcess.h"
+#include "windows.h"
+//define
+extern void fn_GetRVAs(std::map<const std::string,DWORD *> &keyValue,const std::string &ModuleName);
 //enum class
 enum class e_SendDataMethod{
     NONE,CreateRemoteThread,Socket
@@ -19,7 +20,9 @@ struct st_wRVA_Socket{
     DWORD closesocket;
     DWORD WSACleanup;
     st_wRVA_Socket() : WSAStartup(), socket(), connect(), send(), recv(), closesocket(), WSACleanup(){
-        std::map<const std::string,DWORD *> keyValue{
+        using std::string;
+        using std::map;
+        map<const string,DWORD *> keyValue{
                 {"WSAStartup",&WSAStartup},
                 {"socket",&socket},
                 {"connect",&connect},
@@ -36,7 +39,9 @@ struct st_wRVA_CreateRemoteThread{
     DWORD CreateRemoteThread;
     DWORD WaitForSingleObject;
     st_wRVA_CreateRemoteThread() : OpenProcess(), CreateRemoteThread(), WaitForSingleObject(){
-        std::map<const std::string,DWORD *> keyValue{
+        using std::string;
+        using std::map;
+        map<const string,DWORD *> keyValue{
                 {"OpenProcess",&OpenProcess},
                 {"CreateRemoteThread",&CreateRemoteThread},
                 {"WaitForSingleObject",&WaitForSingleObject}
@@ -87,7 +92,7 @@ struct st_rData{
     DWORD edi;
     DWORD hookedFrom;//address of the trigger shellcode
 };
-struct st_wCode{
+struct st_wData{
     //  [wCode][params_CreateRemoteThread][params_Socket][st_rData][reserve][backupCode]
     //  ^      ^                          ^              ^         ^        ^
     //  1024   76/512                     00/512         36        auto     512        = 4096
@@ -99,7 +104,7 @@ struct st_wCode{
     st_rData registerSaved;
     unsigned char reserve3[1536 - sizeof(st_rData)];
     unsigned char backupCode[512];
-    st_wCode() :
+    st_wData() :
             shellCode{0},
             params_CreateRemoteThread(),
             reserve1{},
@@ -109,13 +114,15 @@ struct st_wCode{
             reserve3{},
             backupCode{0}{}
 };
+
 struct st_keyValue_AllocMem{
     LPVOID hookedAddress;//addr of code need to hook
-    unsigned HookedCodeLen;//len of code need to hook
-    st_wCode code;
+    unsigned hookedCodeLen;//len of code need to hook
+    st_wData code;
 
     bool init;
     bool used;
+    e_SendDataMethod sendDataMethod;
 };
 struct st_ProcInfo_Dst{
     HANDLE ProcessHandle;//dst process handle
@@ -124,6 +131,6 @@ struct st_ProcInfo_Dst{
 };
 
 //declare the function form of callback
-typedef void(*fn_cb) (void *argAddr);
+typedef void(*fn_cb) (st_rData *rData);
 
 #endif //CROSS_PROCESS_HOOK_DATA_STRUCT_H

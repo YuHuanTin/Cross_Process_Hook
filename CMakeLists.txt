@@ -9,5 +9,5 @@ add_executable(Cross_Process_Hook
         include/ShellCodeMaker.cpp
         include/Cross_Process_Hook.h
         include/Cross_Process_Hook.cpp
-        include/Data_Struct.h include/PreProcess.h)
+        include/Data_Struct.h include/PreProcess.cpp)
 

@@ -1,6 +1,10 @@
 #include <algorithm>
 #include "Cross_Process_Hook.h"
+#include "ShellCodeMaker.h"
 #include "TlHelp32.h"
+
+using std::string;
+
 //private
 HANDLE c_ProcessHook::GetProcessHandle(const string &processName) {
     HANDLE m_hTh32 = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -40,18 +44,41 @@ bool c_ProcessHook::FreeMem(LPVOID allocMem) {
     return false;
 }
 //public
-bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen){
-    //auto alloc mem in dst proc
+bool c_ProcessHook::CtorHook(LPVOID hookedAddress,e_SendDataMethod sendDataMethod,unsigned hookedLen){
+    switch (sendDataMethod) {
+        case e_SendDataMethod::NONE:
+            printf("error:e_SendDataMethod have not init\n");
+            return false;
+        case e_SendDataMethod::CreateRemoteThread:
+            break;
+        case e_SendDataMethod::Socket:
+#pragma comment(lib,"ws2_32.lib")
+            WSAData wsaData{};
+            if (WSAStartup(MAKEWORD(2,2),&wsaData) != 0){
+                printf("error:WSAStartup fail\n");
+                return false;
+            }
+            break;
+    }
+    //Check if the hookedAddress is used
+    for (auto ch:ProcInfo_Dst.AllocMem) {
+        if (ch.second.hookedAddress == hookedAddress){
+            printf("error:hookedAddress already in use\n");
+            return false;
+        }
+    }
+    //Alloc mem in dst proc
     LPVOID m_AllocMemAddr = this->AllocMem();
     if (m_AllocMemAddr == nullptr){
+        printf("error:AllocMem fail\n");
         return false;
     }
-    //ctor write Code
-    c_ShellCodeMaker shellCodeMaker(m_AllocMemAddr);
+    //Switch method to make shellCode
+    c_ShellCodeMaker shellCodeMaker(m_AllocMemAddr,sendDataMethod);
 
 
 
-    this->ProcInfo_Dst.AllocMem.insert({m_AllocMemAddr,{hookedAddress,hookedLen,shellCodeMaker.wCode,true,false}});
+    this->ProcInfo_Dst.AllocMem.insert({m_AllocMemAddr,{hookedAddress,hookedLen,shellCodeMaker.wCode,true,false,sendDataMethod}});
     return false;
 }
 bool c_ProcessHook::CommitMem() {

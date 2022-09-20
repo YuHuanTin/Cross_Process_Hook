@@ -1,42 +1,30 @@
 #ifndef CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
 #define CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
-#include <string>
-#include "ShellCodeMaker.h"
-
-using std::string;
+#include "Data_Struct.h"
 
 class c_ProcessHook{
 private:
     st_ProcInfo_Dst ProcInfo_Dst;
-    st_wParams_CreateRemoteThread
 
-    HANDLE GetProcessHandle(const string &processName);
+    HANDLE GetProcessHandle(const std::string &processName);
     LPVOID AllocMem();
     bool FreeMem(LPVOID allocMem);
 public:
     //processName: need low-case process name
-    c_ProcessHook(const string &processName,e_SendDataMethod sendDataMethod,fn_cb callback){
-        //get dst process handle
+    c_ProcessHook(const std::string &processName,fn_cb callback){
         if (processName.length() > 0) {
             ProcInfo_Dst.ProcessHandle = this->GetProcessHandle(processName);
             if (ProcInfo_Dst.ProcessHandle == nullptr)
                 printf("error:GetProcessHandle\n");
         }
-        if (sendDataMethod == e_SendDataMethod::NONE)
-            printf("error:e_SendDataMethod have not init\n");
-        else if (sendDataMethod == e_SendDataMethod::Socket){
-            WSAData wsaData{};
-            if (WSAStartup(MAKEWORD(2,2),&wsaData) != 0)
-                printf("error:WSAStartup\n");
-        }
         if (callback == nullptr)
             printf("error:callback have not init\n");
     }
-    //ctor wCode
-    bool CtorHook(LPVOID hookedAddress,unsigned hookedLen);
-    //commit wCode
+    //ctor wData
+    bool CtorHook(LPVOID hookedAddress,e_SendDataMethod sendDataMethod,unsigned hookedLen);
+    //commit wData
     bool CommitMem();
-    //delete wCode
+    //delete wData
     bool DeleteHook(LPVOID hookedAddress);
 };
 

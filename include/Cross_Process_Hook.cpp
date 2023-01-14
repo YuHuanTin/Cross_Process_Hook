@@ -1,43 +1,55 @@
 #include <algorithm>
 #include "Cross_Process_Hook.h"
 #include "TlHelp32.h"
+
+
+using std::string;
 //private
 HANDLE c_ProcessHook::GetProcessHandle(const string &processName) {
-    HANDLE m_hTh32 = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (m_hTh32 != nullptr){
-        PROCESSENTRY32 pe;
-        pe.dwSize = sizeof(PROCESSENTRY32);
-        if (Process32First(m_hTh32, &pe)){
-            do {
-                string m_ProcessName_transform = pe.szExeFile;
-                std::transform(m_ProcessName_transform.begin(), m_ProcessName_transform.end(), m_ProcessName_transform.data(), tolower);
-                if (processName == m_ProcessName_transform){
-                    CloseHandle(m_hTh32);
-                    HANDLE m_hProcess = OpenProcess(PROCESS_ALL_ACCESS,false,pe.th32ProcessID);
-                    if (m_hProcess != nullptr){
-                        return m_hProcess;
-                    }
-                    break;
-                }
-            } while (Process32Next(m_hTh32, &pe));
-        }
-        CloseHandle(m_hTh32);
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == nullptr) {
         return nullptr;
     }
+    PROCESSENTRY32 pe;
+    pe.dwSize = sizeof(PROCESSENTRY32);
+    if (!Process32First(hSnapshot, &pe)) {
+        CloseHandle(hSnapshot);
+        return nullptr;
+    }
+    do {
+        string exeFileTransform = pe.szExeFile;
+        string processNameTransform = processName;
+
+        std::transform(exeFileTransform.begin(), exeFileTransform.end(), exeFileTransform.data(), tolower);
+        std::transform(processNameTransform.begin(), processNameTransform.end(), processNameTransform.data(), tolower);
+
+        if (processNameTransform == exeFileTransform) {
+            CloseHandle(hSnapshot);
+            HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pe.th32ProcessID);
+            if (hProcess != nullptr) {
+                return hProcess;
+            }
+        }
+    } while (Process32Next(hSnapshot, &pe));
+    CloseHandle(hSnapshot);
     return nullptr;
 }
 LPVOID c_ProcessHook::AllocMem() {
-    LPVOID m_AllocMemAddr = VirtualAllocEx(this->ProcInfo_Dst.ProcessHandle,nullptr,4096,MEM_COMMIT,PAGE_EXECUTE_READWRITE);
+    LPVOID m_AllocMemAddr = VirtualAllocEx(this->ProcInfo_Dst.processHandle, nullptr, 4096, MEM_COMMIT,
+                                           PAGE_EXECUTE_READWRITE);
     if (m_AllocMemAddr == nullptr){
         return nullptr;
     }
     return m_AllocMemAddr;
 }
 bool c_ProcessHook::FreeMem(LPVOID allocMem) {
-    if (VirtualFreeEx(this->ProcInfo_Dst.ProcessHandle,allocMem,0,MEM_RELEASE)){
+    if (VirtualFreeEx(this->ProcInfo_Dst.processHandle, allocMem, 0, MEM_RELEASE)) {
         return true;
     }
     return false;
+}
+void c_ProcessHook::PrintException(const std::string &out) {
+    std::cout << out << '\n';
 }
 //public
 bool c_ProcessHook::CtorHook(LPVOID hookedAddress,unsigned hookedLen){
@@ -62,7 +74,7 @@ bool c_ProcessHook::CommitMem() {
             //write code
             SIZE_T m_NumOfWrite = 0;
             printf("%#x\n",(unsigned )(*i).first);
-            WriteProcessMemory(this->ProcInfo_Dst.ProcessHandle,(*i).first,(LPCVOID)&(*i).second.code,4096,&m_NumOfWrite);
+            WriteProcessMemory(this->ProcInfo_Dst.processHandle, (*i).first, (LPCVOID)&(*i).second.code, 4096, &m_NumOfWrite);
             if (m_NumOfWrite!= 4096){
                 printf("error:%#X ,%#X\n",(unsigned)(*i).first,(unsigned)(*i).second.hookedAddress);
             }

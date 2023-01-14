@@ -1,36 +1,52 @@
 #ifndef CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
 #define CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
 #include <string>
+#include <iostream>
 #include "ShellCodeMaker.h"
 
-using std::string;
+#pragma comment(lib,"Ws2_32.lib")
 
 class c_ProcessHook{
 private:
     st_ProcInfo_Dst ProcInfo_Dst;
-    st_wParams_CreateRemoteThread
+    //st_wParams_CreateRemoteThread;
 
-    HANDLE GetProcessHandle(const string &processName);
+    HANDLE GetProcessHandle(const std::string &processName);
     LPVOID AllocMem();
     bool FreeMem(LPVOID allocMem);
+    void PrintException(const std::string &out);
 public:
-    //processName: need low-case process name
-    c_ProcessHook(const string &processName,e_SendDataMethod sendDataMethod,fn_cb callback){
+    c_ProcessHook(const std::string &processName, e_SendDataMethod sendDataMethod, fn_cb callback) {
+        //init iostream
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+
         //get dst process handle
-        if (processName.length() > 0) {
-            ProcInfo_Dst.ProcessHandle = this->GetProcessHandle(processName);
-            if (ProcInfo_Dst.ProcessHandle == nullptr)
-                printf("error:GetProcessHandle\n");
+        if (processName.length() <= 0) {
+            PrintException("Unknow Process Name!");
+            return;
         }
-        if (sendDataMethod == e_SendDataMethod::NONE)
-            printf("error:e_SendDataMethod have not init\n");
-        else if (sendDataMethod == e_SendDataMethod::Socket){
-            WSAData wsaData{};
-            if (WSAStartup(MAKEWORD(2,2),&wsaData) != 0)
-                printf("error:WSAStartup\n");
+        ProcInfo_Dst.processHandle = this->GetProcessHandle(processName);
+        if (ProcInfo_Dst.processHandle == nullptr)
+            PrintException("Can't find process or OpenProcess failed!");
+
+        //choose method
+        switch (sendDataMethod) {
+            case e_SendDataMethod::NONE:
+                PrintException("e_SendDataMethod have not init!");
+                break;
+            case e_SendDataMethod::CreateRemoteThread:
+                break;
+            case e_SendDataMethod::Socket:
+                WSAData wsaData{};
+                if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+                    PrintException("WSAStartup failed!");
+                break;
         }
+
+        //check callback function
         if (callback == nullptr)
-            printf("error:callback have not init\n");
+            PrintException("callback have not init!");
     }
     //ctor wCode
     bool CtorHook(LPVOID hookedAddress,unsigned hookedLen);
@@ -39,6 +55,5 @@ public:
     //delete wCode
     bool DeleteHook(LPVOID hookedAddress);
 };
-
 
 #endif //CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H

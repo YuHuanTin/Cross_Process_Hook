@@ -3,10 +3,11 @@
 #include <map>
 #include <string>
 #include "Windows.h"
-#include "PreProcess.h"
+
+extern void GetModuleRVA(std::map<const std::string, DWORD *> &keyValue, const std::string &ModuleName);
 //enum class
 enum class e_SendDataMethod{
-    NONE,CreateRemoteThread,Socket
+    NONE, CreateRemoteThread, Socket
 };
 //struct
 struct st_wRVA_Socket{
@@ -18,32 +19,36 @@ struct st_wRVA_Socket{
     DWORD recv;
     DWORD closesocket;
     DWORD WSACleanup;
-    st_wRVA_Socket() : WSAStartup(), socket(), connect(), send(), recv(), closesocket(), WSACleanup(){
-        std::map<const std::string,DWORD *> keyValue{
-                {"WSAStartup",&WSAStartup},
-                {"socket",&socket},
-                {"connect",&connect},
-                {"send",&send},
-                {"recv",&recv},
-                {"closesocket",&closesocket},
-                {"WSACleanup",&WSACleanup}
+
+    st_wRVA_Socket()
+            : WSAStartup(), socket(), connect(), send(), recv(), closesocket(), WSACleanup() {
+        std::map<const std::string, DWORD *> keyValue{
+                {"WSAStartup",  &WSAStartup},
+                {"socket",      &socket},
+                {"connect",     &connect},
+                {"send",        &send},
+                {"recv",        &recv},
+                {"closesocket", &closesocket},
+                {"WSACleanup",  &WSACleanup}
         };
-        fn_GetRVAs(keyValue,"ws2_32.dll");
+        GetModuleRVA(keyValue, "ws2_32.dll");
     }
 };
 struct st_wRVA_CreateRemoteThread{
     DWORD OpenProcess;
     DWORD CreateRemoteThread;
     DWORD WaitForSingleObject;
-    st_wRVA_CreateRemoteThread() : OpenProcess(), CreateRemoteThread(), WaitForSingleObject(){
-        std::map<const std::string,DWORD *> keyValue{
-                {"OpenProcess",&OpenProcess},
-                {"CreateRemoteThread",&CreateRemoteThread},
-                {"WaitForSingleObject",&WaitForSingleObject}
+    st_wRVA_CreateRemoteThread()
+            : OpenProcess(), CreateRemoteThread(), WaitForSingleObject() {
+        std::map<const std::string, DWORD *> keyValue{
+                {"OpenProcess",         &OpenProcess},
+                {"CreateRemoteThread",  &CreateRemoteThread},
+                {"WaitForSingleObject", &WaitForSingleObject}
         };
-        fn_GetRVAs(keyValue,"kernel32.dll");
+        GetModuleRVA(keyValue, "kernel32.dll");
     }
 };
+
 struct st_wParams_Socket{
     wchar_t DllName[11];
     st_wRVA_Socket rvaSocket;
@@ -116,12 +121,17 @@ struct st_keyValue_AllocMem{
 
     bool init;
     bool used;
+
+    st_keyValue_AllocMem()
+            : hookedAddress(nullptr), HookedCodeLen(0), code(), init(false), used(false) {
+        
+    }
 };
 struct st_ProcInfo_Dst{
-    HANDLE ProcessHandle;//dst process handle
-    std::map<LPVOID,st_keyValue_AllocMem> AllocMem;//AllocMemAddr-st_keyValue_AllocMem
-    st_ProcInfo_Dst() : ProcessHandle(nullptr), AllocMem(){}
+    HANDLE processHandle;
+    std::map<LPVOID, st_keyValue_AllocMem> AllocMem;//AllocMemAddr-st_keyValue_AllocMem
 };
+
 
 //declare the function form of callback
 typedef void(*fn_cb) (void *argAddr);

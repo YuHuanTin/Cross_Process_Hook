@@ -6,54 +6,22 @@
 
 #pragma comment(lib,"Ws2_32.lib")
 
-class c_ProcessHook{
+class ProcessHook{
 private:
-    st_ProcInfo_Dst ProcInfo_Dst;
-    //st_wParams_CreateRemoteThread;
-
-    HANDLE GetProcessHandle(const std::string &processName);
-    LPVOID AllocMem();
-    bool FreeMem(LPVOID allocMem);
-    void PrintException(const std::string &out);
+    ProcessInformationT processInformation;
+    std::vector<HookT> vHooks;
 public:
-    c_ProcessHook(const std::string &processName, e_SendDataMethod sendDataMethod, fn_cb callback) {
-        //init iostream
-        std::ios::sync_with_stdio(false);
-        std::cin.tie(nullptr);
+    ProcessHook(const std::string &ProcessName, HookMethodE HookMethod, fn_cb CallBack);
+    ProcessHook(DWORD ProcessID, HookMethodE HookMethod, fn_cb CallBack);
 
-        //get dst process handle
-        if (processName.length() <= 0) {
-            PrintException("Unknow Process Name!");
-            return;
-        }
-        ProcInfo_Dst.processHandle = this->GetProcessHandle(processName);
-        if (ProcInfo_Dst.processHandle == nullptr)
-            PrintException("Can't find process or OpenProcess failed!");
+    /// \param HookAddress hook的起始地址
+    /// \param HookLen hook占用的字节
+    /// \return
+    bool CtorHook(DWORD HookAddress, unsigned HookLen);
 
-        //choose method
-        switch (sendDataMethod) {
-            case e_SendDataMethod::NONE:
-                PrintException("e_SendDataMethod have not init!");
-                break;
-            case e_SendDataMethod::CreateRemoteThread:
-                break;
-            case e_SendDataMethod::Socket:
-                WSAData wsaData{};
-                if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-                    PrintException("WSAStartup failed!");
-                break;
-        }
-
-        //check callback function
-        if (callback == nullptr)
-            PrintException("callback have not init!");
-    }
-    //ctor wCode
-    bool CtorHook(LPVOID hookedAddress,unsigned hookedLen);
-    //commit wCode
     bool CommitMem();
-    //delete wCode
-    bool DeleteHook(LPVOID hookedAddress);
+
+    bool DeleteHook(DWORD HookAddress);
 };
 
 #endif //CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H

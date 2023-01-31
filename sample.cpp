@@ -5,17 +5,16 @@ void remote_cb(void *argAddr){
     printf("call it!");
 }
 int main(){
-    c_ProcessHook p("", e_SendDataMethod::Socket, remote_cb);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
-    /*
-    c_ProcessHook processHook("notepad.exe",e_SendDataMethod::Socket,remote_cb);
+    ProcessHook p("notepad.exe", HookMethodE::Socket, remote_cb);
 
-
-    processHook.CtorHook((LPVOID)0x75000000,5);
-    processHook.CommitMem();
+    p.CtorHook(0x75000000,5);
+    p.CommitMem();
     WaitForSingleObject(GetCurrentProcess(),INFINITE);
-    processHook.DeleteHook((LPVOID)0x75000000);
-*/
+    p.DeleteHook(0x75000000);
+
 
     return 0;
 }

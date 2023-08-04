@@ -4,10 +4,10 @@
 #define CROSS_PROCESS_HOOK_AUTOMEMORYMANAGER_H
 
 #include <memory>
-#include "Windows.h"
+#include <Windows.h>
 
 /**
- * ç”¨äº unique_ptr è‡ªåŠ¨ CloseHandle OpenProcess çš„å¥æŸ„
+ * ÓÃÓÚ unique_ptr ×Ô¶¯ CloseHandle OpenProcess µÄ¾ä±ú
  */
 struct AutoDelete_GetProcessHandle {
     void operator()(HANDLE OpenProcessHandle) {
@@ -17,17 +17,23 @@ struct AutoDelete_GetProcessHandle {
 
 namespace Utils {
     /**
-     * è·å– ProcessID çš„å¥æŸ„
+     * ×ªÒÆ HANDLE ÀàĞÍ±äÁ¿ËùÓĞÈ¨£¬ÓÃÓÚ×Ô¶¯¹Ø±Õ¾ä±ú
+     *
+     * @param Handle
+     * @return
+     */
+    std::unique_ptr<std::remove_pointer_t<HANDLE>,AutoDelete_GetProcessHandle> moveHandleOwner(HANDLE Handle);
+
+    /**
+     * »ñÈ¡ ProcessID µÄ¾ä±ú
      *
      * @param ProcessID
      * @return
      */
-    std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_GetProcessHandle> getProcessHandle(DWORD ProcessID) {
-        return std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_GetProcessHandle>(OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessID));
-    }
+    std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_GetProcessHandle> getProcessHandle(DWORD ProcessID);
 
     /**
-     * æ–°å»ºä¸€å—å†…å­˜ç”¨äºå‚¨å­˜ ElementSize å¤§å°çš„ ElementType ç±»å‹å…ƒç´ 
+     * ĞÂ½¨Ò»¿éÄÚ´æÓÃÓÚ´¢´æ ElementSize ´óĞ¡µÄ ElementType ÀàĞÍÔªËØ
      *
      * @tparam ElementType
      * @param ElementSize
@@ -39,7 +45,7 @@ namespace Utils {
     }
 
     /**
-     * è·å– ProcessHandle è¿›ç¨‹çš„ Address å¼€å§‹çš„ Len é•¿åº¦çš„æ•°æ®
+     * »ñÈ¡ ProcessHandle ½ø³ÌµÄ Address ¿ªÊ¼µÄ Len ³¤¶ÈµÄÊı¾İ
      *
      * @tparam ElementType
      * @param ProcessHandle
@@ -57,7 +63,7 @@ namespace Utils {
     }
 
     /**
-     * è·å– ProcessID è¿›ç¨‹çš„ Address å¼€å§‹çš„ Len é•¿åº¦çš„æ•°æ®
+     * »ñÈ¡ ProcessID ½ø³ÌµÄ Address ¿ªÊ¼µÄ Len ³¤¶ÈµÄÊı¾İ
      *
      * @tparam ElementType
      * @param ProcessID

@@ -1,25 +1,33 @@
 #ifndef CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
 #define CROSS_PROCESS_HOOK_CROSS_PROCESS_HOOK_H
+
 #include <string>
-#include <iostream>
-#include "ShellCodeMaker.h"
+#include <optional>
+#include <stdexcept>
+#include <unordered_map>
+#include <Windows.h>
+#include <TlHelp32.h>
 
-#pragma comment(lib,"Ws2_32.lib")
 
-class ProcessHook{
+class ProcessHook {
 private:
-    ProcessInformationT processInformation;
-    std::vector<HookT> vHooks;
+    enum HookMethod {
+        Socket, Pipe, Shared_Memory
+    };
+
+
+    DWORD                            m_processID;
+    HookMethod                       m_hookMethod;
+    std::unordered_map<DWORD, DWORD> m_hooks;
+
 public:
-    ProcessHook(const std::string &ProcessName, HookMethodE HookMethod, fn_cb CallBack);
-    ProcessHook(DWORD ProcessID, HookMethodE HookMethod, fn_cb CallBack);
+    explicit ProcessHook(const std::string &ProcessName, HookMethod HookMethod = HookMethod::Socket);
 
-    /// \param HookAddress hook的起始地址
-    /// \param HookLen hook占用的字节
-    /// \return
-    bool CtorHook(DWORD HookAddress, unsigned HookLen);
+    explicit ProcessHook(DWORD ProcessID, HookMethod HookMethod = HookMethod::Socket);
 
-    bool CommitMem();
+    bool AddHook(DWORD HookAddress, unsigned HookLen);
+
+    bool CommitHook();
 
     bool DeleteHook(DWORD HookAddress);
 };

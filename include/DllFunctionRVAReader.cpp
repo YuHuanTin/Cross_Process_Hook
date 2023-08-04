@@ -1,6 +1,7 @@
 
 
 #include "DllFunctionRVAReader.h"
+#include "../Utils/ProcessUtils.h"
 #include "../Utils/AutoMemoryManager.h"
 
 struct parseRetType {
@@ -8,36 +9,6 @@ struct parseRetType {
     std::unordered_map<WORD, DWORD>       functionOrdToRva;
     DWORD                                 exportDirectoryOrdBase = 0;
 };
-
-/**
- * 获取 PID 进程的 DllName 的模块基址和模块总大小
- *
- * @param ProcessID
- * @param DllName
- * @return
- */
-std::optional<std::pair<DWORD, DWORD>> getProcessModuleBaseAddressWithSize(DWORD ProcessID, const std::string &DllName) {
-    DWORD  moduleBaseAddress = 0;
-    DWORD  moduleSize        = 0;
-    HANDLE hSnapshot         = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, ProcessID);
-    if (hSnapshot == INVALID_HANDLE_VALUE)
-        return std::nullopt;
-
-    MODULEENTRY32 moduleEntry;
-    moduleEntry.dwSize = sizeof(MODULEENTRY32);
-    if (Module32First(hSnapshot, &moduleEntry)) {
-        do {
-            std::string module = moduleEntry.szModule;
-            if (module == DllName) {
-                moduleBaseAddress = (DWORD) moduleEntry.modBaseAddr;
-                moduleSize        = (DWORD) moduleEntry.modBaseSize;
-                break;
-            }
-        } while (Module32Next(hSnapshot, &moduleEntry));
-    }
-    CloseHandle(hSnapshot);
-    return {{moduleBaseAddress, moduleSize}};
-}
 
 /**
  * 获取 ProcessHandle 进程的以 ModuleBaseAddress 开始的 PE 节地址和大小
@@ -48,7 +19,8 @@ std::optional<std::pair<DWORD, DWORD>> getProcessModuleBaseAddressWithSize(DWORD
  */
 std::optional<std::pair<DWORD, DWORD>> getPEAddressWithSize(HANDLE ProcessHandle, DWORD ModuleBaseAddress) {
     MEMORY_BASIC_INFORMATION basicInformation;
-    DWORD                    retSize = VirtualQueryEx(ProcessHandle, (LPCVOID) ModuleBaseAddress, &basicInformation, sizeof(MEMORY_BASIC_INFORMATION));
+
+    DWORD retSize = VirtualQueryEx(ProcessHandle, (LPCVOID) ModuleBaseAddress, &basicInformation, sizeof(MEMORY_BASIC_INFORMATION));
     if (retSize == 0) {
         return std::nullopt;
     }
@@ -79,37 +51,6 @@ std::optional<std::pair<DWORD, DWORD>> getExportDirectoryRvaAndSize(HANDLE Proce
     // 获取导出表 rva 和 size
     IMAGE_DATA_DIRECTORY exportDirectory = ntHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
     return {{exportDirectory.VirtualAddress, exportDirectory.Size}};
-}
-
-/**
- * 获取 PIP 进程 DllName 模块的磁盘路径和模块基址
- *
- * @param ProcessID
- * @param DllName
- * @return
- */
-std::optional<std::pair<std::string, DWORD>> getProcessModulePathWithBaseAddress(DWORD ProcessID, const std::string &DllName) {
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, ProcessID);
-    if (hSnapshot == INVALID_HANDLE_VALUE)
-        return std::nullopt;
-
-    std::string modulePath;
-    DWORD       baseAddress;
-
-    MODULEENTRY32 moduleEntry;
-    moduleEntry.dwSize = sizeof(MODULEENTRY32);
-    if (Module32First(hSnapshot, &moduleEntry)) {
-        do {
-            std::string module = moduleEntry.szModule;
-            if (module == DllName) {
-                modulePath  = moduleEntry.szExePath;
-                baseAddress = (DWORD) moduleEntry.modBaseAddr;
-                break;
-            }
-        } while (Module32Next(hSnapshot, &moduleEntry));
-    }
-    CloseHandle(hSnapshot);
-    return {{modulePath, baseAddress}};
 }
 
 /**
@@ -162,10 +103,10 @@ DllFunctionRVAReader::DllFunctionRVAReader(DWORD ProcessID, std::string TargetDl
           m_targetDllName(std::move(TargetDllName)),
           m_searchPoly(SearchPoly) {
     if (m_searchPoly == SEARCH_IN_MEMORY) {
-        auto processModuleBaseAddressWithSize = getProcessModuleBaseAddressWithSize(ProcessID, m_targetDllName);
-        if (!processModuleBaseAddressWithSize) throw std::runtime_error("getProcessModuleBaseAddressWithSize");
+        auto processModule = Utils::getProcessModule(m_processID, m_targetDllName);
+        if (!processModule) throw std::runtime_error("getProcessModule");
 
-        auto peSegmentAddressWithSize = getPEAddressWithSize(m_processHandle, processModuleBaseAddressWithSize->first);
+        auto peSegmentAddressWithSize = getPEAddressWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
         if (!peSegmentAddressWithSize) throw std::runtime_error("getPEAddressWithSize");
 
         auto exportDirectoryRvaAndSize = getExportDirectoryRvaAndSize(m_processHandle, peSegmentAddressWithSize->first, peSegmentAddressWithSize->second);
@@ -175,19 +116,19 @@ DllFunctionRVAReader::DllFunctionRVAReader(DWORD ProcessID, std::string TargetDl
                                                 exportDirectoryRvaAndSize->second);
         if (!parseResult) throw std::runtime_error("parseExportDirectory");
 
-        m_moduleBaseAddress      = processModuleBaseAddressWithSize->first;
+        m_moduleBaseAddress      = (DWORD) processModule->modBaseAddr;
         m_functionNameToOrd      = parseResult->functionNameToOrd;
         m_functionOrdToRva       = parseResult->functionOrdToRva;
         m_exportDirectoryOrdBase = parseResult->exportDirectoryOrdBase;
 
     } else if (m_searchPoly == SEARCH_IN_FILE) {
-        auto modulePathWithBaseAddress = getProcessModulePathWithBaseAddress(m_processID, m_targetDllName);
-        if (!modulePathWithBaseAddress) throw std::runtime_error("getProcessModulePathWithBaseAddress");
+        auto processModule = Utils::getProcessModule(m_processID, m_targetDllName);
+        if (!processModule) throw std::runtime_error("getProcessModule");
 
-        m_hmodule = LoadLibraryA(modulePathWithBaseAddress->first.c_str());
+        m_hmodule = LoadLibraryA(processModule->szExePath);
         if (!m_hmodule) throw std::runtime_error("LoadLibraryA");
 
-        m_moduleBaseAddress = (DWORD)m_hmodule;
+        m_moduleBaseAddress = (DWORD) m_hmodule;
     }
 }
 
@@ -212,7 +153,7 @@ DWORD DllFunctionRVAReader::Search(DWORD FunctionOrd, bool WithBaseAddress) {
         return m_functionOrdToRva[FunctionOrd - m_exportDirectoryOrdBase] + (WithBaseAddress ? m_moduleBaseAddress : 0);
     } else if (m_searchPoly == SEARCH_IN_FILE) {
         auto address = (DWORD) GetProcAddress(m_hmodule, (LPCSTR) FunctionOrd);
-        if (address!= 0) {
+        if (address != 0) {
             return address - (WithBaseAddress ? 0 : m_moduleBaseAddress);
         }
     }

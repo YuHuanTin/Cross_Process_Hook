@@ -1,8 +1,7 @@
 
 
 #include "DllFunctionRVAReader.h"
-#include "../Utils/ProcessUtils.h"
-#include "../Utils/AutoMemoryManager.h"
+#include "../Utils/Utils.h"
 
 struct parseRetType {
     std::unordered_map<std::string, WORD> functionNameToOrd;
@@ -36,7 +35,7 @@ std::optional<std::pair<DWORD, DWORD>> getPEAddressWithSize(HANDLE ProcessHandle
  * @return
  */
 std::optional<std::pair<DWORD, DWORD>> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, DWORD PEAddress, DWORD PESize) {
-    auto data = Utils::getProcessMemoryDataByReadProcess<uint8_t>(ProcessHandle, PEAddress, PESize);
+    auto data = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddress, PESize);
     if (!data) return {};
 
     // 获取 dos 头
@@ -63,7 +62,7 @@ std::optional<std::pair<DWORD, DWORD>> getExportDirectoryRvaAndSize(HANDLE Proce
  * @return
  */
 std::optional<parseRetType> parseExportDirectory(HANDLE ProcessHandle, DWORD PEAddress, DWORD ExportDirectoryRVA, DWORD ExportDirectorySize) {
-    auto exportDirectoryData = Utils::getProcessMemoryDataByReadProcess<uint8_t>(ProcessHandle, PEAddress + ExportDirectoryRVA, ExportDirectorySize);
+    auto exportDirectoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddress + ExportDirectoryRVA, ExportDirectorySize);
     if (!exportDirectoryData) return std::nullopt;
 
     IMAGE_EXPORT_DIRECTORY exportDirectory;
@@ -97,42 +96,42 @@ std::optional<parseRetType> parseExportDirectory(HANDLE ProcessHandle, DWORD PEA
 }
 
 
-DllFunctionRVAReader::DllFunctionRVAReader(DWORD ProcessID, std::string TargetDllName, SearchPoly SearchPoly)
+DllFunctionRVAReader::DllFunctionRVAReader(DWORD ProcessID, SearchPoly SearchPoly)
         : m_processID(ProcessID),
           m_processHandle(OpenProcess(PROCESS_ALL_ACCESS, FALSE, m_processID)),
-          m_targetDllName(std::move(TargetDllName)),
-          m_searchPoly(SearchPoly) {
-    if (m_searchPoly == SEARCH_IN_MEMORY) {
-        auto processModule = Utils::getProcessModule(m_processID, m_targetDllName);
-        if (!processModule) throw std::runtime_error("getProcessModule");
+          m_searchPoly(SearchPoly) {}
 
+bool DllFunctionRVAReader::initSearch(const std::string &DllName) {
+    auto processModule = isDllLoaded(DllName);
+    if (!processModule)
+        return false;
+
+
+    if (m_searchPoly == SEARCH_IN_MEMORY) {
         auto peSegmentAddressWithSize = getPEAddressWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
-        if (!peSegmentAddressWithSize) throw std::runtime_error("getPEAddressWithSize");
+        if (!peSegmentAddressWithSize) return false;
 
         auto exportDirectoryRvaAndSize = getExportDirectoryRvaAndSize(m_processHandle, peSegmentAddressWithSize->first, peSegmentAddressWithSize->second);
-        if (!exportDirectoryRvaAndSize) throw std::runtime_error("getExportDirectoryRvaAndSize");
+        if (!exportDirectoryRvaAndSize) return false;
 
         auto parseResult = parseExportDirectory(m_processHandle, peSegmentAddressWithSize->first, exportDirectoryRvaAndSize->first,
                                                 exportDirectoryRvaAndSize->second);
-        if (!parseResult) throw std::runtime_error("parseExportDirectory");
+        if (!parseResult) return false;
 
         m_moduleBaseAddress      = (DWORD) processModule->modBaseAddr;
         m_functionNameToOrd      = parseResult->functionNameToOrd;
         m_functionOrdToRva       = parseResult->functionOrdToRva;
         m_exportDirectoryOrdBase = parseResult->exportDirectoryOrdBase;
-
     } else if (m_searchPoly == SEARCH_IN_FILE) {
-        auto processModule = Utils::getProcessModule(m_processID, m_targetDllName);
-        if (!processModule) throw std::runtime_error("getProcessModule");
-
         m_hmodule = LoadLibraryA(processModule->szExePath);
-        if (!m_hmodule) throw std::runtime_error("LoadLibraryA");
+        if (!m_hmodule) return false;
 
         m_moduleBaseAddress = (DWORD) m_hmodule;
     }
+    return true;
 }
 
-DWORD DllFunctionRVAReader::Search(const std::string &FunctionName, bool WithBaseAddress) {
+DWORD DllFunctionRVAReader::searchRVA(const std::string &FunctionName, bool WithBaseAddress) {
     if (m_searchPoly == SEARCH_IN_MEMORY) {
         auto it = m_functionNameToOrd.find(FunctionName);
         if (it == m_functionNameToOrd.end()) {
@@ -148,7 +147,7 @@ DWORD DllFunctionRVAReader::Search(const std::string &FunctionName, bool WithBas
     return 0;
 }
 
-DWORD DllFunctionRVAReader::Search(DWORD FunctionOrd, bool WithBaseAddress) {
+DWORD DllFunctionRVAReader::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) {
     if (m_searchPoly == SEARCH_IN_MEMORY) {
         return m_functionOrdToRva[FunctionOrd - m_exportDirectoryOrdBase] + (WithBaseAddress ? m_moduleBaseAddress : 0);
     } else if (m_searchPoly == SEARCH_IN_FILE) {
@@ -162,5 +161,23 @@ DWORD DllFunctionRVAReader::Search(DWORD FunctionOrd, bool WithBaseAddress) {
 
 DllFunctionRVAReader::~DllFunctionRVAReader() {
     CloseHandle(m_processHandle);
+    if (m_searchPoly == SEARCH_IN_FILE) {
+        FreeLibrary(m_hmodule);
+    }
 }
 
+std::optional<MODULEENTRY32> DllFunctionRVAReader::isDllLoaded(const std::string &DllName) const {
+    auto processModule = Utils::RemoteProcess::getProcessModule(m_processID, DllName);
+    if (!processModule) return std::nullopt;
+    return processModule;
+}
+
+bool DllFunctionRVAReader::loadDll(const std::string &DllName, DWORD LoadLibraryAddr) {
+    // 如果找不到 hook 方式所需要的 dll 则自动加载
+    // 如果是系统dll则只需要提供名称
+    return Utils::RemoteProcess::loadDll(m_processHandle, LoadLibraryAddr, DllName);
+}
+
+bool DllFunctionRVAReader::freeDll(const std::string &DllName, DWORD FreeLibraryAddr) {
+    return Utils::RemoteProcess::freeDll(m_processHandle, FreeLibraryAddr, Utils::RemoteProcess::getProcessModule(m_processID, DllName)->hModule);
+}

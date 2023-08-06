@@ -2,9 +2,10 @@
 
 #include "Utils.h"
 
+
 namespace Utils {
     namespace AutoPtr {
-        std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> moveHandleOwner(HANDLE Handle) {
+        std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> moveHandleOwner(HANDLE Handle) noexcept {
             return std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle>(Handle);
         }
     }
@@ -13,12 +14,12 @@ namespace Utils {
         std::optional<DWORD> getProcessID(const std::string &ProcessName) {
             auto hSnapshot = Utils::AutoPtr::moveHandleOwner(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
             if (!hSnapshot || hSnapshot.get() == INVALID_HANDLE_VALUE)
-                return std::nullopt;
+                throw MyException("CreateToolhelp32Snapshot", GetLastError(), __FUNCTION__);
 
             PROCESSENTRY32 pe;
             pe.dwSize = sizeof(PROCESSENTRY32);
             if (!Process32First(hSnapshot.get(), &pe))
-                return std::nullopt;
+                throw MyException("Process32First", GetLastError(), __FUNCTION__);
 
             do {
                 std::string lowerExeFile     = Utils::String::stringToLower(pe.szExeFile);
@@ -30,19 +31,15 @@ namespace Utils {
             return std::nullopt;
         }
 
-        std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> getProcessHandle(DWORD ProcessID) {
-            return Utils::AutoPtr::moveHandleOwner(OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessID));
-        }
-
         std::optional<MODULEENTRY32> getProcessModule(DWORD ProcessID, const std::string &DllName) {
             auto hSnapshot = Utils::AutoPtr::moveHandleOwner(CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, ProcessID));
             if (!hSnapshot || hSnapshot.get() == INVALID_HANDLE_VALUE)
-                return std::nullopt;
+                throw MyException("CreateToolhelp32Snapshot", GetLastError(), __FUNCTION__);
 
             MODULEENTRY32 moduleEntry;
             moduleEntry.dwSize = sizeof(MODULEENTRY32);
             if (!Module32First(hSnapshot.get(), &moduleEntry))
-                return std::nullopt;
+                throw MyException("Module32First", GetLastError(), __FUNCTION__);
 
             do {
                 std::string lowerszModule   = Utils::String::stringToLower(moduleEntry.szModule);
@@ -54,53 +51,53 @@ namespace Utils {
             return std::nullopt;
         }
 
-        bool loadDll(HANDLE ProcessHandle, DWORD LoadlibraryAddress, const std::string &DllPath) {
-            auto allocMemoryAddress = allocMemory(ProcessHandle);
-            if (!allocMemoryAddress) return false;
+        std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> getProcessHandle(DWORD ProcessID) noexcept {
+            return Utils::AutoPtr::moveHandleOwner(OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessID));
+        }
+
+        void loadDll(HANDLE ProcessHandle, DWORD LoadlibraryAddress, const std::string &DllPath) {
+            LPVOID allocMemoryAddress = allocMemory(ProcessHandle);
 
             DWORD oldProtect = 0;
-            if (!VirtualProtectEx(ProcessHandle, allocMemoryAddress.value(), 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-                freeMemory(ProcessHandle, allocMemoryAddress.value());
-                return false;
+            if (!VirtualProtectEx(ProcessHandle, allocMemoryAddress, 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+                freeMemory(ProcessHandle, allocMemoryAddress);
+                throw MyException("VirtualProtectEx", GetLastError(), __FUNCTION__);
             }
 
-            if (!writeMemory(ProcessHandle, allocMemoryAddress.value(), DllPath.data(), DllPath.size())) {
-                freeMemory(ProcessHandle, allocMemoryAddress.value());
-                return false;
-            }
-
-            HANDLE hThread = CreateRemoteThread(ProcessHandle, NULL, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddress, allocMemoryAddress.value(), 0, NULL);
+            writeMemory(ProcessHandle, allocMemoryAddress, DllPath.data(), DllPath.size());
+            HANDLE hThread = CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddress, allocMemoryAddress, 0, NULL);
             if (!hThread) {
-                freeMemory(ProcessHandle, allocMemoryAddress.value());
-                return false;
+                freeMemory(ProcessHandle, allocMemoryAddress);
+                throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
             }
             WaitForSingleObject(hThread, INFINITE);
-            freeMemory(ProcessHandle, allocMemoryAddress.value());
-            return true;
+            freeMemory(ProcessHandle, allocMemoryAddress);
         }
 
-        bool freeDll(HANDLE ProcessHandle, DWORD FreelibraryAddress, HMODULE DllModule) {
-            HANDLE hThread = CreateRemoteThread(ProcessHandle, NULL, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddress, DllModule, 0, NULL);
+        void freeDll(HANDLE ProcessHandle, DWORD FreelibraryAddress, HMODULE DllModule) {
+            HANDLE hThread = CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddress, DllModule, 0, NULL);
             if (!hThread) {
-                return false;
+                throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
             }
             WaitForSingleObject(hThread, INFINITE);
-            return true;
         }
 
-        std::optional<LPVOID> allocMemory(HANDLE ProcessHandle, DWORD Size) {
+        LPVOID allocMemory(HANDLE ProcessHandle, DWORD Size) {
             LPVOID addr = VirtualAllocEx(ProcessHandle, nullptr, Size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-            if (!addr) return std::nullopt;
+            if (!addr)
+                throw MyException("VirtualAllocEx", GetLastError(), __FUNCTION__);
             return addr;
         }
 
-        bool freeMemory(HANDLE ProcessHandle, LPVOID Address) {
-            return VirtualFreeEx(ProcessHandle, Address, 0, MEM_RELEASE);
+        void freeMemory(HANDLE ProcessHandle, LPVOID Address) {
+            if (!VirtualFreeEx(ProcessHandle, Address, 0, MEM_RELEASE)) {
+                throw MyException("VirtualFreeEx", GetLastError(), __FUNCTION__);
+            }
         }
     }
 
     namespace String {
-        std::string stringToLower(const std::string &RawString) {
+        std::string stringToLower(const std::string &RawString) noexcept {
             std::string newString = RawString;
             for (auto   &one: newString) {
                 if (isalpha(one) && isupper(one)) {

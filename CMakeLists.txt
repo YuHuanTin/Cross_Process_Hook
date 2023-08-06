@@ -20,6 +20,8 @@ add_executable(Cross_Process_Hook
         Utils/Utils.h
         include/ControlBlockManager.cpp
         include/ControlBlockManager.h
+        Utils/MyException.cpp
+        Utils/MyException.h
 )
 
 target_link_libraries(Cross_Process_Hook fmt::fmt)

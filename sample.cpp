@@ -9,10 +9,12 @@ int main(){
 
 
     ProcessHook processHook(Utils::RemoteProcess::getProcessID("notepad.exe").value());
-
     processHook.AddHook(0, 0);
 
-
+    /**
+     *  std::optional 只用于判断是否有值
+     *  如果碰到错误请直接抛异常而不是返回 std::nullopt
+     */
     /**
      *  Hook 构造的时候创建一个函数用于加载远程 dll
      *  Hook 析构的时候释放dll

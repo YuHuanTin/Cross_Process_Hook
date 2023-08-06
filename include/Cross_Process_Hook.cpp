@@ -23,14 +23,12 @@ bool ProcessHook::AddHook(DWORD HookAddress, unsigned int HookLen) {
     if (m_hookMethod == HookMethod::Socket) {
         ShellCodeMaker maker;
 
-        auto data = maker.makeSocketShellCode((DWORD) m_controlBlockManager->getRemoteControlBlockAddr().value());
+        auto data = maker.makeSocketShellCode((DWORD) m_controlBlockManager->getRemoteControlBlockAddr());
 
-        auto hookAddress = Utils::RemoteProcess::allocMemory(m_processHandle);
-        if (!hookAddress) throw std::runtime_error("allocMemory");
+        LPVOID hookAddress = Utils::RemoteProcess::allocMemory(m_processHandle);
+        Utils::RemoteProcess::writeMemory(m_processHandle, hookAddress, data.data(), data.size());
 
-        Utils::RemoteProcess::writeMemory(m_processHandle, hookAddress.value(), data.data(), data.size());
-
-        printf("%d\n", (int) hookAddress.value());
+        printf("%d\n", (int) hookAddress);
     }
 
     return true;

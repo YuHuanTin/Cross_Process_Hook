@@ -28,32 +28,68 @@ namespace Utils {
     }
 
     namespace RemoteProcess {
+        /**
+         * 一定有值，否则异常，不需要判断是否有值
+         *
+         * @tparam ElementType
+         * @param ProcessHandle
+         * @param Address
+         * @param Len
+         * @return
+         */
         template<typename ElementType>
         std::unique_ptr<ElementType[]> readMemory(HANDLE ProcessHandle, DWORD Address, DWORD Len) {
             auto ptr = Utils::AutoPtr::makeElementArray<ElementType>(Len);
             if (!ReadProcessMemory(ProcessHandle, (LPCVOID) Address, ptr.get(), Len, nullptr)) {
-                throw MyException("ReadProcessMemory", __FUNCTION__);
+                throw MyException("ReadProcessMemory", GetLastError(), __FUNCTION__);
             }
             return ptr;
         }
 
+        /**
+         * 一定成功，否则异常，不需要判断是否有值
+         *
+         * @tparam ElementType
+         * @param ProcessID
+         * @param Address
+         * @param Len
+         * @return
+         */
         template<typename ElementType>
         std::unique_ptr<ElementType[]> readMemory(DWORD ProcessID, DWORD Address, DWORD Len) {
             auto processHandle = getProcessHandle(ProcessID);
             return readMemory<ElementType>(processHandle.get(), Address, Len);
         }
 
+        /**
+         * 一定成功，否则异常
+         *
+         * @tparam ElementType
+         * @param ProcessHandle
+         * @param Address
+         * @param Data
+         * @param DataLen
+         */
         template<typename ElementType>
         void writeMemory(HANDLE ProcessHandle, LPVOID Address, ElementType Data[], std::size_t DataLen) {
             if (!WriteProcessMemory(ProcessHandle, Address, Data, DataLen, nullptr)) {
-                throw std::runtime_error("WriteProcessMemory");
+                throw MyException("WriteProcessMemory", GetLastError(), __FUNCTION__);
             }
         }
 
+        /**
+         * 一定成功，否则异常
+         *
+         * @tparam ElementType
+         * @param ProcessID
+         * @param Address
+         * @param Data
+         * @param DataLen
+         */
         template<typename ElementType>
         void writeMemory(DWORD ProcessID, LPVOID Address, ElementType Data[], std::size_t DataLen) {
             auto processHandle = getProcessHandle(ProcessID);
-            return writeMemory(processHandle.get(), Address, Data, DataLen);
+            writeMemory(processHandle.get(), Address, Data, DataLen);
         }
 
         std::optional<DWORD> getProcessID(const std::string &ProcessName);
@@ -66,6 +102,13 @@ namespace Utils {
 
         void freeDll(HANDLE ProcessHandle, DWORD FreelibraryAddress, HMODULE DllModule);
 
+        /**
+         * 一定有值，否则异常，不需要判断是否有值
+         *
+         * @param ProcessHandle
+         * @param Size
+         * @return
+         */
         LPVOID allocMemory(HANDLE ProcessHandle, DWORD Size = 0x1000);
 
         void freeMemory(HANDLE ProcessHandle, LPVOID Address);

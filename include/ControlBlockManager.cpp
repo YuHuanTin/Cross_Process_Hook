@@ -6,21 +6,24 @@
 ControlBlockManager::ControlBlockManager(DWORD ProcessID)
         : m_controlBlockPtr(std::make_unique<ControlBlock>()),
           m_processID(ProcessID),
-          m_processHandle(OpenProcess(PROCESS_ALL_ACCESS, FALSE, m_processID)) {}
+          m_processHandle(OpenProcess(PROCESS_ALL_ACCESS, FALSE, m_processID)),
+          m_loadLibraryAddr(0),
+          m_freeLibraryAddr(0),
+          m_controlBlockRemoteAddr(nullptr) {}
 
 ControlBlockManager::~ControlBlockManager() {
-    // free remote process loaded dll because hook from m_hookLoadDlls!
+    /// 释放目标进程 hook 所需而加载的 dll
     DllFunctionRVAReader rvaReader(m_processID, DllFunctionRVAReader::SEARCH_IN_FILE);
 
     for (const auto &one: m_hookLoadDlls) {
-        if (rvaReader.isDllLoaded(one)){
-            rvaReader.freeDll(one, m_freeLibraryAddr);
+        if (rvaReader.isDllLoaded(one)) {
+            Utils::RemoteProcess::freeDll(m_processHandle, m_freeLibraryAddr, Utils::RemoteProcess::getProcessModule(m_processID, one).value().hModule);
         }
     }
 
-    // free remote process memory controlblock!
+    /// 释放目标进程的控制块内存
     if (m_controlBlockRemoteAddr) {
-        Utils::RemoteProcess::freeMemory(m_processHandle, m_controlBlockRemoteAddr.value());
+        Utils::RemoteProcess::freeMemory(m_processHandle, m_controlBlockRemoteAddr);
     }
     CloseHandle(m_processHandle);
 }
@@ -33,20 +36,20 @@ void ControlBlockManager::fillSocketArgs() {
     /// kernelbase.dll
     if (!rvaReader.isDllLoaded(dlls[0]) || !rvaReader.initSearch(dlls[0])) {
         // 不能自动加载所缺 dll 因为 LoadLibraryA 无法获取到
-        throw std::runtime_error("unloadDll kernelbase");
+        throw MyException("unloadDll kernelbase", __FUNCTION__);
     }
-    DWORD loadLibraryAddr = rvaReader.searchRVA("LoadLibraryA", true);
+
+    m_loadLibraryAddr = rvaReader.searchRVA("LoadLibraryA", true);
     m_freeLibraryAddr = rvaReader.searchRVA("FreeLibrary", true);
+
 
     /// ws2_32.dll
     if (!rvaReader.isDllLoaded(dlls[1])) {
-        if (!rvaReader.loadDll(dlls[1], loadLibraryAddr)) {
-            throw std::runtime_error("unloadDll ws2_32");
-        }
+        Utils::RemoteProcess::loadDll(m_processHandle, m_loadLibraryAddr, dlls[1]);
         m_hookLoadDlls.emplace_back(dlls[1]);
     }
     if (!rvaReader.initSearch(dlls[1])) {
-        throw std::runtime_error("initSearch ws2_32");
+        throw MyException("initSearch ws2_32", __FUNCTION__);
     }
 
     m_controlBlockPtr->HookMethod                         = HookMethod::Socket;
@@ -62,28 +65,23 @@ void ControlBlockManager::fillSocketArgs() {
 
     /// ucrtbase.dll
     if (!rvaReader.isDllLoaded(dlls[2])) {
-        if (!rvaReader.loadDll(dlls[2], loadLibraryAddr)) {
-            throw std::runtime_error("unloadDll ucrtbase");
-        }
+        Utils::RemoteProcess::loadDll(m_processHandle, m_loadLibraryAddr, dlls[2]);
         m_hookLoadDlls.emplace_back(dlls[2]);
     }
     if (!rvaReader.initSearch(dlls[2])) {
-        throw std::runtime_error("initSearch ucrtbase");
+        throw MyException("initSearch ucrtbase", __FUNCTION__);
     }
 
     m_controlBlockPtr->PSocketFunctionAddress.malloc = rvaReader.searchRVA("malloc", true);
     m_controlBlockPtr->PSocketFunctionAddress.free   = rvaReader.searchRVA("free", true);
 }
 
-void ControlBlockManager::injectControlBlock(HANDLE ProcessHandle) {
+void ControlBlockManager::injectControlBlock(HANDLE ProcessHandle)  {
     m_controlBlockRemoteAddr = Utils::RemoteProcess::allocMemory(ProcessHandle);
-    if (!m_controlBlockRemoteAddr)
-        throw std::runtime_error("allocMemory");
-    if (!Utils::RemoteProcess::writeMemory(ProcessHandle, m_controlBlockRemoteAddr.value(), m_controlBlockPtr.get(), sizeof(ControlBlock)))
-        throw std::runtime_error("writeMemory");
+    Utils::RemoteProcess::writeMemory(m_processHandle, m_controlBlockRemoteAddr, m_controlBlockPtr.get(), sizeof(ControlBlock));
 }
 
-std::optional<LPVOID> ControlBlockManager::getRemoteControlBlockAddr() {
+LPVOID ControlBlockManager::getRemoteControlBlockAddr() const noexcept {
     return m_controlBlockRemoteAddr;
 }
 

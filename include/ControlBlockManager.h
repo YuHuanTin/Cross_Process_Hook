@@ -12,24 +12,28 @@
 
 class ControlBlockManager {
 private:
+    // 控制块的指针
     std::unique_ptr<ControlBlock> m_controlBlockPtr;
+
+    // 控制块在目标进程的地址
+    LPVOID                        m_controlBlockRemoteAddr;
 
     DWORD  m_processID;
     HANDLE m_processHandle;
 
     // 保存哪些dll是因为hook所需才被加载的，析构的时候请一并释放
     std::vector<std::string> m_hookLoadDlls;
+    DWORD                    m_loadLibraryAddr;
     DWORD                    m_freeLibraryAddr;
 
-    std::optional<LPVOID> m_controlBlockRemoteAddr;
 public:
-    ControlBlockManager(DWORD ProcessID);
+    explicit ControlBlockManager(DWORD ProcessID);
 
     void fillSocketArgs();
 
     void injectControlBlock(HANDLE ProcessHandle);
 
-    std::optional<LPVOID> getRemoteControlBlockAddr();
+    [[nodiscard]] LPVOID getRemoteControlBlockAddr() const noexcept;
 
     ~ControlBlockManager();
 };

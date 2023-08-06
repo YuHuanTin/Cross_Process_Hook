@@ -17,3 +17,4 @@ const char *MyException::what() const {
     return m_ErrorMsg.c_str();
 }
 
+

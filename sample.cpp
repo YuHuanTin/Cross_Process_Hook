@@ -7,9 +7,14 @@
 int main(){
     setbuf(stdout, nullptr);
 
+    try {
+        ProcessHook processHook(Utils::RemoteProcess::getProcessID("notepad.exe").value_or(-1));
+        processHook.AddHook(0, 0);
+    } catch (std::exception &exception) {
+        fmt::println("{}", exception.what());
+    }
 
-    ProcessHook processHook(Utils::RemoteProcess::getProcessID("notepad.exe").value());
-    processHook.AddHook(0, 0);
+
 
     /**
      *  std::optional 只用于判断是否有值

@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <Windows.h>
 
-class MyException : std::exception {
+class MyException : public std::exception {
 private:
     std::string m_ErrorMsg;
 public:
@@ -14,7 +14,7 @@ public:
 
     MyException(std::string ErrorMsg, DWORD ErrorCode, const char *Function);
 
-    const char *what() const override;
+    [[nodiscard]] const char *what() const override;
 };
 
 

@@ -24,21 +24,18 @@ public:
 
     explicit DllFunctionRVAReader(DWORD ProcessID, SearchPoly SearchPoly = SEARCH_IN_FILE);
 
-    std::optional<MODULEENTRY32> isDllLoaded(const std::string &DllName) const;
+    [[nodiscard]] std::optional<MODULEENTRY32> isDllLoaded(const std::string &DllName) const;
 
-    bool loadDll(const std::string &DllName, DWORD LoadLibraryAddr);
-
-    bool freeDll(const std::string &DllName, DWORD FreeLibraryAddr);
     /**
-     * 初始化搜索
+     * 初始化搜索，如果 false 则可能 dll 未加载
      *
      * @return
      */
     bool initSearch(const std::string &DllName);
 
-    DWORD searchRVA(const std::string &FunctionName, bool WithBaseAddress = false);
+    DWORD searchRVA(const std::string &FunctionName, bool WithBaseAddress = false) const;
 
-    DWORD searchRVA(DWORD FunctionOrd, bool WithBaseAddress = false);
+    DWORD searchRVA(DWORD FunctionOrd, bool WithBaseAddress = false) const;
 
     ~DllFunctionRVAReader();
 

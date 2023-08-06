@@ -9,6 +9,7 @@
 #include <Windows.h>
 #include <TlHelp32.h>
 
+#include "ControlBlockManager.h"
 
 class ProcessHook {
 private:
@@ -21,8 +22,7 @@ private:
     HookMethod                       m_hookMethod;
     std::unordered_map<DWORD, DWORD> m_hooks;
 
-    LPVOID m_dataBufferAddress;
-
+    std::unique_ptr<ControlBlockManager> m_controlBlockManager;
 public:
     explicit ProcessHook(const std::string &ProcessName, HookMethod HookMethod = HookMethod::Socket);
 

@@ -10,7 +10,7 @@
 
 // 请在调用函数前就在函数头部填充 pushad
 __declspec(safebuffers)
-void socketShellCodeBase() {
+void socketShellCodeBase86() {
     /// ucrtbase.dll
     typedef void *__cdecl malloc(
             _In_ _CRT_GUARDOVERFLOW size_t Size);
@@ -44,19 +44,25 @@ void socketShellCodeBase() {
     typedef u_short       PASCAL FAR htons(_In_ u_short hostshort);
     typedef unsigned long PASCAL FAR inet_addr(_In_z_ const char FAR *cp);
 
-    // vvv this value must point to DataBufferBlock
-    auto functionAddress = (DWORD *) 0xCCCCCCCC;
-    auto lpMalloc        = (malloc *) functionAddress[0];
-    auto lpFree          = (free *) functionAddress[1];
-    auto lpWSAStartup    = (WSAStartup *) functionAddress[2];
-    auto lpWSACleanup    = (WSACleanup *) functionAddress[3];
-    auto lpSocket        = (socket *) functionAddress[4];
-    auto lpConnect       = (connect *) functionAddress[5];
-    auto lpSend          = (send *) functionAddress[6];
-    auto lpRecv          = (recv *) functionAddress[7];
-    auto lpClosesocket   = (closesocket *) functionAddress[8];
-    auto lpHtons         = (htons *) functionAddress[9];
-    auto lpInet_addr     = (inet_addr *) functionAddress[10];
+    // vvv this value must point to ControlBlock
+    auto  dataBufferAddr       = (std::uint8_t *) 0xCCCCCCCC;
+    DWORD offsetRegister       = *(DWORD *) (dataBufferAddr + 12);
+    DWORD offsetSocketFunction = *(DWORD *) (dataBufferAddr + 16);
+    DWORD regSize              = offsetSocketFunction - offsetRegister;
+    auto  *regAddr             = (DWORD *) (dataBufferAddr + offsetRegister);
+    auto  *socketFunctionAddr  = (DWORD *) (dataBufferAddr + offsetSocketFunction);
+
+    auto lpMalloc      = (malloc *) socketFunctionAddr[0];
+    auto lpFree        = (free *) socketFunctionAddr[1];
+    auto lpWSAStartup  = (WSAStartup *) socketFunctionAddr[2];
+    auto lpWSACleanup  = (WSACleanup *) socketFunctionAddr[3];
+    auto lpSocket      = (socket *) socketFunctionAddr[4];
+    auto lpConnect     = (connect *) socketFunctionAddr[5];
+    auto lpSend        = (send *) socketFunctionAddr[6];
+    auto lpRecv        = (recv *) socketFunctionAddr[7];
+    auto lpClosesocket = (closesocket *) socketFunctionAddr[8];
+    auto lpHtons       = (htons *) socketFunctionAddr[9];
+    auto lpInet_addr   = (inet_addr *) socketFunctionAddr[10];
 
     auto *wsaData = (WSAData *) lpMalloc(sizeof(WSAData));
     lpWSAStartup(MAKEWORD(2, 2), wsaData);
@@ -75,13 +81,32 @@ void socketShellCodeBase() {
         return;
     }
 
-    char strBuf[] = {'H', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd', '\0'};
-    if (lpSend(hSocket, strBuf, sizeof(strBuf), 0) == SOCKET_ERROR) {
+    // 保存寄存器
+
+    if (lpSend(hSocket, (char *) regAddr, regSize, 0) == SOCKET_ERROR) {
         return;
     }
-    char strRecvBuf[1024];
-    if (lpRecv(hSocket, strRecvBuf, sizeof(strRecvBuf), 0) == SOCKET_ERROR) {
+
+    // 不能使用 {0}，因为不能使用memset
+    char recvBuf[16];
+    for (char &i: recvBuf) {
+        i = '\0';
+    }
+    if (lpRecv(hSocket, recvBuf, sizeof(recvBuf), 0) == SOCKET_ERROR) {
         return;
+    }
+    const char strServerResponse[] = {'R', 'e', 's', 'p', 'o', 'n', 's', 'e', 'O', 'K', '\0'};
+
+    std::size_t      sameLen = 0;
+    for (std::size_t i       = 0; i < sizeof(strServerResponse) / sizeof(strServerResponse[0]); ++i) {
+        if (recvBuf[i] == strServerResponse[i])
+            ++sameLen;
+        else
+            break;
+    }
+    if (sameLen == sizeof(strServerResponse) / sizeof(strServerResponse[0])) {
+
+        // 通信成功
     }
 
 
@@ -143,21 +168,21 @@ ShellCodeMaker::ShellCodeMaker() {
 
 }
 
-std::vector<std::uint8_t> ShellCodeMaker::makeSocketShellCode(DWORD DataBufferBlockAddr, DWORD FunctionAddrStructOffset) {
+std::vector<std::uint8_t> ShellCodeMaker::makeSocketShellCode(DWORD DataBufferBlockAddr) {
     std::uint8_t endSign[] = {0x61, 0x90};
 
-    auto funBeginAddAndSize = getFunBeginAddressAndSize((DWORD) socketShellCodeBase, endSign, 2);
+    auto funBeginAddAndSize = getFunBeginAddressAndSize((DWORD) socketShellCodeBase86, endSign, 2);
     if (!funBeginAddAndSize) throw std::runtime_error("getFunBeginAddressAndSize");
 
     std::vector<std::uint8_t> codeBytes(funBeginAddAndSize->second);
     memcpy(codeBytes.data(), (void *) funBeginAddAndSize->first, funBeginAddAndSize->second);
 
 
-    // 找到第一个值为 0xCCCCCCCC 的地址替换为目标进程的 DataBufferBlock 地址 + [Socket/Pipe/Shared_Memory]FunctionAddrOffset
+    // 找到第一个值为 0xCCCCCCCC 的地址替换为目标进程的 ControlBlock 地址
     for (std::size_t i = 0; i < codeBytes.size() - sizeof(DWORD) + 1; ++i) {
         DWORD &value = *(DWORD *) (codeBytes.data() + i);
         if (value == 0xCCCCCCCC) {
-            value = (DWORD) ((uint8_t *) DataBufferBlockAddr + FunctionAddrStructOffset);
+            value = DataBufferBlockAddr;
             break;
         }
     }

@@ -106,7 +106,6 @@ bool DllFunctionRVAReader::initSearch(const std::string &DllName) {
     if (!processModule)
         return false;
 
-
     if (m_searchPoly == SEARCH_IN_MEMORY) {
         auto peSegmentAddressWithSize = getPEAddressWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
         if (!peSegmentAddressWithSize) return false;
@@ -168,7 +167,6 @@ DllFunctionRVAReader::~DllFunctionRVAReader() {
 
 std::optional<MODULEENTRY32> DllFunctionRVAReader::isDllLoaded(const std::string &DllName) const {
     auto processModule = Utils::RemoteProcess::getProcessModule(m_processID, DllName);
-    if (!processModule) return std::nullopt;
     return processModule;
 }
 

@@ -4,88 +4,66 @@
 #include <cassert>
 #include <vector>
 #include <string>
-#include "Windows.h"
+#include <Windows.h>
 
+enum HookMethod {
+    Socket, Pipe, Shared_Memory
+};
 
-struct DataBufferBlock {
-    DWORD HookMethod;
-    uint8_t isSocketEstablish;
-    uint8_t isPipeEstablish;
-    uint8_t isSharedMemoryEstablish;
-    uint8_t reserve[5];
+struct ControlBlock {
+    DWORD   HookMethod              = HookMethod::Socket;
+    uint8_t isSocketEstablish       = 0;
+    uint8_t isPipeEstablish         = 0;
+    uint8_t isSharedMemoryEstablish = 0;
+#if _WIN64
+    uint8_t isX86 = 0;
+#elif _WIN32
+    uint8_t isX86 = 1;
+#endif
 
-#if _WIN32
-    DWORD registerSize = sizeof(Register32);
-    struct Register32 {
-        DWORD eax;
-        DWORD ebx;
-        DWORD ecx;
-        DWORD edx;
-        DWORD ebp;
-        DWORD esp;
-        DWORD esi;
-        DWORD edi;
-    } PRegister32;
-#elif _WIN64
+    uint8_t reserve[4]{0};
+
+#if _WIN64
     // todo : x64 QWORD register
     DWORD registerSize = sizeof(Register64);
     struct Register64 {
 
     };
-#endif
+#elif _WIN32
+    // 结构体对于开头的偏移（十进制）
+    DWORD offsetRegister             = 28;
+    DWORD offsetSocketFunction       = 60;
+    DWORD offsetPipeFunction         = 0;
+    DWORD offsetSharedMemoryFunction = 0;
 
-
+    struct Register32 {
+        DWORD eax = 0;
+        DWORD ebx = 0;
+        DWORD ecx = 0;
+        DWORD edx = 0;
+        DWORD ebp = 0;
+        DWORD esp = 0;
+        DWORD esi = 0;
+        DWORD edi = 0;
+    }     PRegister32;
     struct SocketFunctionAddress {
         /// ucrtbase.dll
-        // function[0] = 'malloc'
-        // function[1] = 'free'
-
+        DWORD malloc      = 0;               // function[0] = 'malloc'
+        DWORD free        = 0;               // function[1] = 'free'
         /// ws2_32.dll
-        // function[2] = 'WSAStartup'
-        // function[3] = 'WSACleanup'
-        // function[4] = 'socket'
-        // function[5] = 'connect'
-        // function[6] = 'send'
-        // function[7] = 'recv'
-        // function[8] = 'closesocket'
-        // function[9] = 'htons'
-        // function[10] = 'inet_addr'
+        DWORD WSAStartup  = 0;               // function[2] = 'WSAStartup'
+        DWORD WSACleanup  = 0;               // function[3] = 'WSACleanup'
+        DWORD socket      = 0;               // function[4] = 'socket'
+        DWORD connect     = 0;               // function[5] = 'connect'
+        DWORD send        = 0;               // function[6] = 'send'
+        DWORD recv        = 0;               // function[7] = 'recv'
+        DWORD closesocket = 0;               // function[8] = 'closesocket'
+        DWORD htons       = 0;               // function[9] = 'htons'
+        DWORD inet_addr   = 0;               // function[10] = 'inet_addr'
+    }     PSocketFunctionAddress;
+#endif
 
-        DWORD malloc;
-        DWORD free;
-        DWORD WSAStartup;
-        DWORD WSACleanup;
-        DWORD socket;
-        DWORD connect;
-        DWORD send;
-        DWORD recv;
-        DWORD closesocket;
-        DWORD htons;
-        DWORD inet_addr;
-    } PSocketFunctionAddress;
 };
-
-//struct wCodeT {
-//    // [code][codeSavedData][reserve]
-//    //  3072  512            512     = 4096
-//
-//
-//    BYTE code[3072];
-//    BYTE codeSavedData[512];
-//    BYTE reserve[512];
-//
-//};
-//struct HookT {
-//    DWORD    hookAddress;
-//    unsigned hookLen;
-//
-//    LPVOID allocAddress;
-//};
-//struct ProcessInformationT {
-//    HANDLE      processHandle = nullptr;
-//    HookMethodE hookMethod    = HookMethodE::NONE;
-//    fn_cb       callback      = nullptr;
-//};
 
 
 #endif //CROSS_PROCESS_HOOK_DATA_STRUCT_H

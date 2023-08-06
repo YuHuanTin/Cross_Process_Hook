@@ -14,7 +14,7 @@ private:
 
 public:
     ShellCodeMaker();
-    std::vector<std::uint8_t> makeSocketShellCode(DWORD DataBufferBlockAddr, DWORD FunctionAddrStructOffset);
+    std::vector<std::uint8_t> makeSocketShellCode(DWORD DataBufferBlockAddr);
 
 
 };

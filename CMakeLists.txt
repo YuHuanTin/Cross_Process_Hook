@@ -18,6 +18,8 @@ add_executable(Cross_Process_Hook
         include/DllFunctionRVAReader.h
         Utils/Utils.cpp
         Utils/Utils.h
+        include/ControlBlockManager.cpp
+        include/ControlBlockManager.h
 )
 
 target_link_libraries(Cross_Process_Hook fmt::fmt)

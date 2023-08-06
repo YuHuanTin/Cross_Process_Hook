@@ -18,6 +18,7 @@ struct AutoDelete_CloseHandle {
     }
 };
 
+// noexcept
 namespace Utils {
     namespace AutoPtr {
         /**

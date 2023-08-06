@@ -33,9 +33,9 @@ public:
      */
     bool initSearch(const std::string &DllName);
 
-    DWORD searchRVA(const std::string &FunctionName, bool WithBaseAddress = false) const;
+    std::optional<DWORD> searchRVA(const std::string &FunctionName, bool WithBaseAddress = false) const;
 
-    DWORD searchRVA(DWORD FunctionOrd, bool WithBaseAddress = false) const;
+    std::optional<DWORD> searchRVA(DWORD FunctionOrd, bool WithBaseAddress = false) const;
 
     ~DllFunctionRVAReader();
 

@@ -126,7 +126,7 @@ bool DllFunctionRVAReader::initSearch(const std::string &DllName) {
     return true;
 }
 
-DWORD DllFunctionRVAReader::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
+std::optional<DWORD> DllFunctionRVAReader::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
     if (m_searchPoly == SEARCH_IN_MEMORY) {
         auto it = m_functionNameToOrd.find(FunctionName);
         if (it != m_functionNameToOrd.end())
@@ -136,10 +136,10 @@ DWORD DllFunctionRVAReader::searchRVA(const std::string &FunctionName, bool With
         if (address != nullptr)
             return (DWORD) address - (WithBaseAddress ? 0 : m_moduleBaseAddress);
     }
-    throw MyException("can not find function RVA to use", __FUNCTION__);
+    return std::nullopt;
 }
 
-DWORD DllFunctionRVAReader::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
+std::optional<DWORD> DllFunctionRVAReader::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
     if (m_searchPoly == SEARCH_IN_MEMORY) {
         auto it = m_functionOrdToRva.find(FunctionOrd - m_exportDirectoryOrdBase);
         if (it != m_functionOrdToRva.end())
@@ -149,7 +149,7 @@ DWORD DllFunctionRVAReader::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) c
         if (address != nullptr)
             return (DWORD) address - (WithBaseAddress ? 0 : m_moduleBaseAddress);
     }
-    throw MyException("can not find function RVA to use", __FUNCTION__);
+    return std::nullopt;
 }
 
 DllFunctionRVAReader::~DllFunctionRVAReader() {

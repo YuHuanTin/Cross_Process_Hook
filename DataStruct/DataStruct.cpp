@@ -1,4 +1,4 @@
-#include "Data_Struct.h"
+#include "DataStruct.h"
 
 //void getModuleRVA(std::map<const std::string, DWORD *> &keyValue, const std::string &ModuleName) {
 //    auto m_BaseAddr = (DWORD) LoadLibraryA(ModuleName.c_str());

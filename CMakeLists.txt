@@ -8,24 +8,30 @@ find_package(fmt CONFIG REQUIRED)
 
 add_executable(Cross_Process_Hook
         sample.cpp
-        include/ShellCodeMaker.h
-        include/ShellCodeMaker.cpp
-        include/Cross_Process_Hook.h
-        include/Cross_Process_Hook.cpp
-        include/Data_Struct.h
-        include/Data_Struct.cpp
+        ShellCodeMaker/ShellCodeBase.h
+        ShellCodeMaker/ShellCodeBase.cpp
+        DataStruct/DataStruct.h
+        DataStruct/DataStruct.cpp
         DllFuncRVAReader/RVAReaderBase.cpp
         DllFuncRVAReader/RVAReaderBase.h
         Utils/Utils.cpp
         Utils/Utils.h
-        include/ControlBlockManager.cpp
-        include/ControlBlockManager.h
+        ControlBlockManager/ControlBlockBase.cpp
+        ControlBlockManager/ControlBlockBase.h
         Utils/MyException.cpp
         Utils/MyException.h
         DllFuncRVAReader/ReadFromFile.cpp
         DllFuncRVAReader/ReadFromFile.h
         DllFuncRVAReader/ReadFromMemory.cpp
         DllFuncRVAReader/ReadFromMemory.h
+        ControlBlockManager/SocketControlBlock.cpp
+        ControlBlockManager/SocketControlBlock.h
+        ProcessHooker/ProcessHookBase.cpp
+        ProcessHooker/ProcessHookBase.h
+        ProcessHooker/SocketHook.cpp
+        ProcessHooker/SocketHook.h
+        ShellCodeMaker/SocketShellCodeX86.cpp
+        ShellCodeMaker/SocketShellCodeX86.h
 )
 
 target_link_libraries(Cross_Process_Hook fmt::fmt)

@@ -1,5 +1,5 @@
-#ifndef CROSS_PROCESS_HOOK_DATA_STRUCT_H
-#define CROSS_PROCESS_HOOK_DATA_STRUCT_H
+#ifndef CROSS_PROCESS_HOOK_DATASTRUCT_H
+#define CROSS_PROCESS_HOOK_DATASTRUCT_H
 
 #include <cassert>
 #include <vector>
@@ -67,4 +67,4 @@ struct DataBuffer {
 };
 
 
-#endif //CROSS_PROCESS_HOOK_DATA_STRUCT_H
+#endif //CROSS_PROCESS_HOOK_DATASTRUCT_H

@@ -14,14 +14,18 @@ add_executable(Cross_Process_Hook
         include/Cross_Process_Hook.cpp
         include/Data_Struct.h
         include/Data_Struct.cpp
-        include/DllFunctionRVAReader.cpp
-        include/DllFunctionRVAReader.h
+        DllFuncRVAReader/RVAReaderBase.cpp
+        DllFuncRVAReader/RVAReaderBase.h
         Utils/Utils.cpp
         Utils/Utils.h
         include/ControlBlockManager.cpp
         include/ControlBlockManager.h
         Utils/MyException.cpp
         Utils/MyException.h
+        DllFuncRVAReader/ReadFromFile.cpp
+        DllFuncRVAReader/ReadFromFile.h
+        DllFuncRVAReader/ReadFromMemory.cpp
+        DllFuncRVAReader/ReadFromMemory.h
 )
 
 target_link_libraries(Cross_Process_Hook fmt::fmt)

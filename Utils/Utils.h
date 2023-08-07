@@ -24,6 +24,11 @@ namespace Utils {
             return std::make_unique<ElementType[]>(ElementSize);
         }
 
+        template<typename Type>
+        std::unique_ptr<Type> moveTypeOwner(Type *Item) noexcept {
+            return std::unique_ptr<Type>(Item);
+        }
+
         std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> moveHandleOwner(HANDLE Handle) noexcept;
     }
 

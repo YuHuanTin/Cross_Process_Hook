@@ -22,6 +22,7 @@ struct ControlBlock {
 #endif
 
     uint8_t reserve[4]{0};
+    SOCKET  hSocket = 0;                     // 保存目标进程socket句柄到控制块，一个远端程序只需要一个socket
 
 #if _WIN64
     // todo : x64 QWORD register
@@ -31,21 +32,10 @@ struct ControlBlock {
     };
 #elif _WIN32
     // 结构体对于开头的偏移（十进制）
-    DWORD offsetRegister             = 28;
-    DWORD offsetSocketFunction       = 60;
+    DWORD offsetSocketFunction       = 28;
     DWORD offsetPipeFunction         = 0;
     DWORD offsetSharedMemoryFunction = 0;
 
-    struct Register32 {
-        DWORD eax = 0;
-        DWORD ebx = 0;
-        DWORD ecx = 0;
-        DWORD edx = 0;
-        DWORD ebp = 0;
-        DWORD esp = 0;
-        DWORD esi = 0;
-        DWORD edi = 0;
-    }     PRegister32;
     struct SocketFunctionAddress {
         /// ucrtbase.dll
         DWORD malloc      = 0;               // function[0] = 'malloc'
@@ -63,6 +53,17 @@ struct ControlBlock {
     }     PSocketFunctionAddress;
 #endif
 
+};
+
+struct DataBuffer {
+    DWORD edi;
+    DWORD esi;
+    DWORD ebp;
+    DWORD esp;
+    DWORD ebx;
+    DWORD edx;
+    DWORD ecx;
+    DWORD eax;
 };
 
 

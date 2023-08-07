@@ -1,7 +1,8 @@
 
 
-#include "DllFunctionRVAReader.h"
+#include "ReadFromMemory.h"
 #include "../Utils/Utils.h"
+#include "../Utils/MyException.h"
 
 struct parseRetType {
     std::unordered_map<std::string, WORD> functionNameToOrd;
@@ -97,69 +98,33 @@ parseRetType parseExportDirectory(HANDLE ProcessHandle, DWORD PEAddress, DWORD E
 }
 
 
-DllFunctionRVAReader::DllFunctionRVAReader(DWORD ProcessID, SearchPoly SearchPoly)
-        : m_processID(ProcessID),
-          m_processHandle(OpenProcess(PROCESS_ALL_ACCESS, FALSE, m_processID)),
-          m_searchPoly(SearchPoly) {}
-
-bool DllFunctionRVAReader::initSearch(const std::string &DllName) {
+bool ReadFromMemory::initSearch(const std::string &DllName) {
     auto processModule = isDllLoaded(DllName);
     if (!processModule)
         return false;
+    auto peSegmentAddressWithSize  = getPEAddressWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
+    auto exportDirectoryRvaAndSize = getExportDirectoryRvaAndSize(m_processHandle, peSegmentAddressWithSize.first, peSegmentAddressWithSize.second);
+    auto parseResult               = parseExportDirectory(m_processHandle, peSegmentAddressWithSize.first, exportDirectoryRvaAndSize.first,
+                                                          exportDirectoryRvaAndSize.second);
 
-    if (m_searchPoly == SEARCH_IN_MEMORY) {
-        auto peSegmentAddressWithSize  = getPEAddressWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
-        auto exportDirectoryRvaAndSize = getExportDirectoryRvaAndSize(m_processHandle, peSegmentAddressWithSize.first, peSegmentAddressWithSize.second);
-        auto parseResult               = parseExportDirectory(m_processHandle, peSegmentAddressWithSize.first, exportDirectoryRvaAndSize.first,
-                                                              exportDirectoryRvaAndSize.second);
+    m_moduleBaseAddress      = (DWORD) processModule->modBaseAddr;
+    m_functionNameToOrd      = parseResult.functionNameToOrd;
+    m_functionOrdToRva       = parseResult.functionOrdToRva;
+    m_exportDirectoryOrdBase = parseResult.exportDirectoryOrdBase;
 
-        m_moduleBaseAddress      = (DWORD) processModule->modBaseAddr;
-        m_functionNameToOrd      = parseResult.functionNameToOrd;
-        m_functionOrdToRva       = parseResult.functionOrdToRva;
-        m_exportDirectoryOrdBase = parseResult.exportDirectoryOrdBase;
-    } else if (m_searchPoly == SEARCH_IN_FILE) {
-        m_hmodule = LoadLibraryA(processModule->szExePath);
-        if (!m_hmodule) return false;
-
-        m_moduleBaseAddress = (DWORD) m_hmodule;
-    }
-    return true;
+    return false;
 }
 
-std::optional<DWORD> DllFunctionRVAReader::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
-    if (m_searchPoly == SEARCH_IN_MEMORY) {
-        auto it = m_functionNameToOrd.find(FunctionName);
-        if (it != m_functionNameToOrd.end())
-            return it->second + (WithBaseAddress ? m_moduleBaseAddress : 0);
-    } else if (m_searchPoly == SEARCH_IN_FILE) {
-        auto address = GetProcAddress(m_hmodule, (LPCSTR) FunctionName.c_str());
-        if (address != nullptr)
-            return (DWORD) address - (WithBaseAddress ? 0 : m_moduleBaseAddress);
-    }
+std::optional<DWORD> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
+    auto it = m_functionNameToOrd.find(FunctionName);
+    if (it != m_functionNameToOrd.end())
+        return it->second + (WithBaseAddress ? m_moduleBaseAddress : 0);
     return std::nullopt;
 }
 
-std::optional<DWORD> DllFunctionRVAReader::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
-    if (m_searchPoly == SEARCH_IN_MEMORY) {
-        auto it = m_functionOrdToRva.find(FunctionOrd - m_exportDirectoryOrdBase);
-        if (it != m_functionOrdToRva.end())
-            return it->second + (WithBaseAddress ? m_moduleBaseAddress : 0);
-    } else if (m_searchPoly == SEARCH_IN_FILE) {
-        auto address = GetProcAddress(m_hmodule, (LPCSTR) FunctionOrd);
-        if (address != nullptr)
-            return (DWORD) address - (WithBaseAddress ? 0 : m_moduleBaseAddress);
-    }
+std::optional<DWORD> ReadFromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
+    auto it = m_functionOrdToRva.find(FunctionOrd - m_exportDirectoryOrdBase);
+    if (it != m_functionOrdToRva.end())
+        return it->second + (WithBaseAddress ? m_moduleBaseAddress : 0);
     return std::nullopt;
 }
-
-DllFunctionRVAReader::~DllFunctionRVAReader() {
-    CloseHandle(m_processHandle);
-    if (m_searchPoly == SEARCH_IN_FILE) {
-        FreeLibrary(m_hmodule);
-    }
-}
-
-std::optional<MODULEENTRY32> DllFunctionRVAReader::isDllLoaded(const std::string &DllName) const {
-    return Utils::RemoteProcess::getProcessModule(m_processID, DllName);
-}
-

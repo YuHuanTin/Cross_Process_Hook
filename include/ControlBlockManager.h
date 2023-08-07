@@ -7,16 +7,18 @@
 #include <optional>
 #include <Windows.h>
 
-
 #include "Data_Struct.h"
+#include "../DllFuncRVAReader/ReadFromFile.h"
 
 class ControlBlockManager {
 private:
     // 控制块的指针
-    std::unique_ptr<ControlBlock> m_controlBlockPtr;
+    std::unique_ptr<ControlBlock>  m_controlBlockPtr;
+    // rva reader 指针
+    std::unique_ptr<RVAReaderBase> m_rvaReader;
 
     // 控制块在目标进程的地址
-    LPVOID                        m_controlBlockRemoteAddr;
+    LPVOID m_controlBlockRemoteAddr;
 
     DWORD  m_processID;
     HANDLE m_processHandle;

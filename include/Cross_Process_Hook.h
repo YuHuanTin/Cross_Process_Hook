@@ -11,6 +11,8 @@
 
 #include "ControlBlockManager.h"
 
+#pragma comment(lib,"ws2_32.lib")
+
 class ProcessHook {
 private:
     enum HookMethod {

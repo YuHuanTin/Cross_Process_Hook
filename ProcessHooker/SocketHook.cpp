@@ -30,7 +30,7 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
     // jmp Ìø×ªÌî³ä
     patchCodeJmp();
 
-    m_socketRecvThread = std::thread([FuncRecvData, this]() {
+    m_socketRecvThread = std::thread([FuncRecvData = std::move(FuncRecvData), this]() {
         // WSAStartup
         WSADATA wsaData;
 

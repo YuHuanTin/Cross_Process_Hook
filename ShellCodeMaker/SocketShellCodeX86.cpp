@@ -1,6 +1,7 @@
 
 
 #include "SocketShellCodeX86.h"
+#include "../DataStruct/DataStruct.h"
 
 /// shell code base begin
 
@@ -94,8 +95,8 @@ void socketShellCodeX86() {
             return;
         }
 
-        // 保存寄存器（4 * 8）
-        if (lpSend(socketHandle, (char *) registerStorageAddr, 32, 0) == SOCKET_ERROR) {
+        // 保存DataBuffer结构体数据
+        if (lpSend(socketHandle, (char *) registerStorageAddr, sizeof(DataBuffer), 0) == SOCKET_ERROR) {
             lpClosesocket(socketHandle);
             lpWSACleanup();
             lpFree(allocSockAddrIn);
@@ -132,8 +133,8 @@ void socketShellCodeX86() {
             hSocket = socketHandle;
         }
     } else {
-        // 保存寄存器（4 * 8）
-        if (lpSend(hSocket, (char *) registerStorageAddr, 32, 0) == SOCKET_ERROR) {
+        // 保存DataBuffer结构体数据
+        if (lpSend(hSocket, (char *) registerStorageAddr, sizeof(DataBuffer), 0) == SOCKET_ERROR) {
             lpClosesocket(hSocket);
             lpWSACleanup();
             isSocketEstablish = false;

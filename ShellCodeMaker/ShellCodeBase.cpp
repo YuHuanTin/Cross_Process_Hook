@@ -9,12 +9,53 @@
  * @param CodeData
  * @return
  */
-std::vector<std::uint8_t> & ShellCodeBase::insertRegisterSaveCode(std::vector<std::uint8_t> &CodeData) {
+std::vector<std::uint8_t> &ShellCodeBase::insertRegisterSaveCode(std::vector<std::uint8_t> &CodeData) {
+    /**
+        046D0001 | 60                       | pushad
+        046D0002 | E8 5D000000              | call 0x46D0064
+        046D0007 | 50                       | push eax
+        046D0008 | 53                       | push ebx
+        046D0009 | 05 F90E0000              | add eax,0xEF9
+        046D000E | 8B5C24 28                | mov ebx,dword ptr ss:[esp+0x28]
+        046D0012 | 8918                     | mov dword ptr ds:[eax],ebx
+        046D0014 | 83C0 04                  | add eax,0x4
+        046D0017 | 8B5C24 2C                | mov ebx,dword ptr ss:[esp+0x2C]
+        046D001B | 8918                     | mov dword ptr ds:[eax],ebx
+        046D001D | 83C0 04                  | add eax,0x4
+        046D0020 | 8B5C24 30                | mov ebx,dword ptr ss:[esp+0x30]
+        046D0024 | 8918                     | mov dword ptr ds:[eax],ebx
+        046D0026 | 83C0 04                  | add eax,0x4
+        046D0029 | 8B5C24 34                | mov ebx,dword ptr ss:[esp+0x34]
+        046D002D | 8918                     | mov dword ptr ds:[eax],ebx
+        046D002F | 83C0 04                  | add eax,0x4
+        046D0032 | 8B5C24 38                | mov ebx,dword ptr ss:[esp+0x38]
+        046D0036 | 8918                     | mov dword ptr ds:[eax],ebx
+        046D0038 | 83C0 04                  | add eax,0x4
+        046D003B | 8B5C24 3C                | mov ebx,dword ptr ss:[esp+0x3C]
+        046D003F | 8918                     | mov dword ptr ds:[eax],ebx
+        046D0041 | 83C0 04                  | add eax,0x4
+        046D0044 | 8B5C24 40                | mov ebx,dword ptr ss:[esp+0x40]
+        046D0048 | 8918                     | mov dword ptr ds:[eax],ebx
+        046D004A | 83C0 04                  | add eax,0x4
+        046D004D | 8B5C24 44                | mov ebx,dword ptr ss:[esp+0x44]
+        046D0051 | 8918                     | mov dword ptr ds:[eax],ebx
+        046D0053 | 83C0 04                  | add eax,0x4
+        046D0056 | 8B5C24 04                | mov ebx,dword ptr ss:[esp+0x4]
+        046D005A | 83EB 07                  | sub ebx,0x7
+        046D005D | 8918                     | mov dword ptr ds:[eax],ebx
+        046D005F | 5B                       | pop ebx
+        046D0060 | 58                       | pop eax
+        046D0061 | 61                       | popad
+        046D0062 | EB 04                    | jmp 0x46D0068
+        046D0064 | 8B0424                   | mov eax,dword ptr ss:[esp]
+        046D0067 | C3                       | ret
+     */
     CodeData.insert(CodeData.begin(),
-                    {0x60, 0xe8, 0x51, 0x00, 0x00, 0x00, 0x50, 0x53, 0x05, 0xf9, 0x0e, 0x00, 0x00, 0x8b, 0x5c, 0x24, 0x28, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b,
+                    {0x60, 0xe8, 0x5d, 0x00, 0x00, 0x00, 0x50, 0x53, 0x05, 0xf9, 0x0e, 0x00, 0x00, 0x8b, 0x5c, 0x24, 0x28, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b,
                      0x5c, 0x24, 0x2c, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x30, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x34, 0x89, 0x18,
                      0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x38, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x3c, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c,
-                     0x24, 0x40, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x44, 0x89, 0x18, 0x5b, 0x58, 0x61, 0xeb, 0x04, 0x8b, 0x04, 0x24, 0xc3});
+                     0x24, 0x40, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x44, 0x89, 0x18, 0x83, 0xc0, 0x04, 0x8b, 0x5c, 0x24, 0x04, 0x83, 0xeb, 0x07,
+                     0x89, 0x18, 0x5b, 0x58, 0x61, 0xeb, 0x04, 0x8b, 0x04, 0x24, 0xc3});
     return CodeData;
 }
 
@@ -24,7 +65,7 @@ std::vector<std::uint8_t> & ShellCodeBase::insertRegisterSaveCode(std::vector<st
  * @param CodeData
  * @return
  */
-std::vector<std::uint8_t> & ShellCodeBase::insertPushadAndPopad(std::vector<std::uint8_t> &CodeData) {
+std::vector<std::uint8_t> &ShellCodeBase::insertPushadAndPopad(std::vector<std::uint8_t> &CodeData) {
     // Ìí¼Ó pushad
     CodeData.insert(CodeData.begin(), 0x60);
 

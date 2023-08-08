@@ -2,12 +2,19 @@
 #include <fmt/format.h>
 #include <chrono>
 #include "ProcessHooker/SocketHook.h"
+#include <functional>
+bool funcRecv(DataBuffer *DataBufferPtr) {
+
+    return true;
+}
 
 int main(){
     setbuf(stdout, nullptr);
     try {
         SocketHook hookWithSocket("notepad.exe");
-        hookWithSocket.addHook();
+        hookWithSocket.addHook(0x762C1DA0, 5);
+
+        hookWithSocket.commitHook(funcRecv);
 
     } catch (std::exception &exception) {
         fmt::println("{}", exception.what());

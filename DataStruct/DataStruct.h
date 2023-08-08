@@ -55,6 +55,7 @@ struct ControlBlock {
 
 };
 
+// 按照 pushad 的顺序接收
 struct DataBuffer {
     DWORD edi;
     DWORD esi;
@@ -64,6 +65,7 @@ struct DataBuffer {
     DWORD edx;
     DWORD ecx;
     DWORD eax;
+    DWORD whereFrom;
 };
 
 

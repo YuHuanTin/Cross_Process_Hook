@@ -100,7 +100,7 @@ namespace Utils {
         std::string stringToLower(const std::string &RawString) noexcept {
             std::string newString = RawString;
             for (auto   &one: newString) {
-                if (isalpha(one) && isupper(one)) {
+                if ((uint8_t )one < 0x7F && isalpha(one) && isupper(one)) {
                     one = tolower(one);
                 }
             }

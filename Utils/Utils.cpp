@@ -45,7 +45,7 @@ namespace Utils {
                 std::string lowerszModule   = Utils::String::stringToLower(moduleEntry.szModule);
                 std::string lowerModuleName = Utils::String::stringToLower(DllName);
 
-                if (lowerszModule == DllName)
+                if (lowerszModule == lowerModuleName)
                     return moduleEntry;
             } while (Module32Next(hSnapshot.get(), &moduleEntry));
             return std::nullopt;

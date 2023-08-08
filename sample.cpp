@@ -2,19 +2,24 @@
 #include <fmt/format.h>
 #include <chrono>
 #include "ProcessHooker/SocketHook.h"
-#include <functional>
-bool funcRecv(DataBuffer *DataBufferPtr) {
+#include "Utils/Utils.h"
 
+bool funcRecv(HANDLE ProcessHandle, DataBuffer *DataBufferPtr) {
+    try {
+        fmt::println("from: 0x{:08X}", DataBufferPtr->whereFrom);
+        auto espWith8 = Utils::RemoteProcess::readMemory<DWORD>(ProcessHandle, DataBufferPtr->esp + 8, 1);
+
+    } catch (std::exception &exception) {
+        fmt::println("occour a exception but catch: {}", exception.what());
+        return false;
+    }
     return true;
 }
 
-int main(){
+int main() {
     setbuf(stdout, nullptr);
     try {
-        SocketHook hookWithSocket("notepad.exe");
-        hookWithSocket.addHook(0x762C1DA0, 5);
 
-        hookWithSocket.commitHook(funcRecv);
 
     } catch (std::exception &exception) {
         fmt::println("{}", exception.what());

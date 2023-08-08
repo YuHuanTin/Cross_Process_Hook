@@ -19,7 +19,7 @@ public:
 
     virtual void addHook(DWORD HookAddr, std::size_t HookLen) = 0;
 
-    virtual bool commitHook(std::function<bool(DataBuffer *)> FuncRecvData) = 0;
+    virtual void commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) = 0;
 
     virtual bool deleteHook(DWORD HookAddress) = 0;
 

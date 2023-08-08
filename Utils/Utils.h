@@ -45,7 +45,7 @@ namespace Utils {
         template<typename ElementType>
         std::unique_ptr<ElementType[]> readMemory(HANDLE ProcessHandle, DWORD Address, DWORD Len) {
             auto ptr = Utils::AutoPtr::makeElementArray<ElementType>(Len);
-            if (!ReadProcessMemory(ProcessHandle, (LPCVOID) Address, ptr.get(), Len, nullptr)) {
+            if (!ReadProcessMemory(ProcessHandle, (LPCVOID) Address, ptr.get(), sizeof(ElementType) * Len, nullptr)) {
                 throw MyException("ReadProcessMemory", GetLastError(), __FUNCTION__);
             }
             return ptr;

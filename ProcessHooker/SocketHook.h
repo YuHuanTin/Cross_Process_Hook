@@ -14,9 +14,11 @@ public:
 
     void addHook(DWORD HookAddr, std::size_t HookLen) override;
 
-    bool commitHook(std::function<bool(DataBuffer *)> FuncRecvData) override;
+    void commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) override;
 
     bool deleteHook(DWORD HookAddress) override;
+
+    ~SocketHook();
 
 private:
 

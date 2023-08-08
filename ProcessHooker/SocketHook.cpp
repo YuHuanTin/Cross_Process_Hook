@@ -1,5 +1,6 @@
 
 
+#include <WinSock2.h>
 #include "SocketHook.h"
 #include "../ShellCodeMaker/SocketShellCodeX86.h"
 #include "../Utils/Utils.h"
@@ -25,74 +26,111 @@ void SocketHook::addHook(DWORD HookAddr, std::size_t HookLen) {
     m_hooks.emplace_back(HookAddr, HookLen, shellCodeAddr, shellCode.size());
 }
 
-bool SocketHook::commitHook(std::function<bool(DataBuffer *)> FuncRecvData) {
+void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) {
     // jmp 跳转填充
     patchCodeJmp();
 
-//    m_socketRecvThread = std::thread([]() {
-//
-//    }).detach();
+    m_socketRecvThread = std::thread([FuncRecvData, this]() {
+        // WSAStartup
+        WSADATA wsaData;
 
-    auto wsadata = Utils::AutoPtr::moveTypeOwner<WSAData>(new WSAData);
-    WSAStartup(MAKEWORD(2, 2), wsadata.get());
-    SOCKET      hSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    sockaddr_in serAddr{
-            AF_INET,//与socket创建时一样
-            htons(9999),
-            INADDR_ANY//绑定本机的任意端口
-    };
-    if (bind(hSocket, (sockaddr *) &serAddr, sizeof(serAddr)) == SOCKET_ERROR) {
+        int iResult;
 
-    }
-    if (listen(hSocket, SOMAXCONN) == SOCKET_ERROR) {
+        // Initialize Winsock
+        iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (iResult != 0) {
+            printf("WSAStartup failed with error: %d\n", iResult);
+            return;
+        }
 
-    }
-    SOCKET ClientSocket = accept(hSocket, NULL, NULL);
+        // Create a SOCKET for the server to listen for client connections.
+        SOCKET ListenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (ListenSocket == INVALID_SOCKET) {
+            printf("socket failed with error: %d\n", WSAGetLastError());
+            WSACleanup();
+            return;
+        }
 
-    closesocket(hSocket);
-    int         iResult;
-    int         iSendResult;
-    auto        buf = std::make_unique<DataBuffer>();
-    std::size_t cnt = 0;
-    do {
-        ++cnt;
-        iResult = recv(ClientSocket, (char *) buf.get(), sizeof(DataBuffer), 0);
-        if (iResult > 0) {
-            printf("cnt: %d\neax:0x%08lX\nebx:0x%08lX\necx:0x%08lX\nedx:0x%08lX\nesi:0x%08lX\nedi:0x%08lX\nesp:0x%08lX\nebp:0X%08lX\nfrom:0x%08lX\n",
-                   cnt,
-                   buf->eax,
-                   buf->ebx,
-                   buf->ecx,
-                   buf->edx,
-                   buf->esi,
-                   buf->edi,
-                   buf->esp,
-                   buf->ebp,
-                   buf->whereFrom);
+        // Setup the TCP listening socket
+        sockaddr_in serAddr{
+                AF_INET, //与socket创建时一样
+                htons(9999),
+                INADDR_ANY //绑定本机的任意端口
+        };
+        iResult = bind(ListenSocket, (sockaddr *) &serAddr, sizeof(serAddr));
+        if (iResult == SOCKET_ERROR) {
+            printf("bind failed with error: %d\n", WSAGetLastError());
+            closesocket(ListenSocket);
+            WSACleanup();
+            return;
+        }
 
-            iSendResult = send(ClientSocket, "ResponseOK", 11, 0);
-            if (iSendResult == SOCKET_ERROR) {
-                printf("send failed with error: %d\n", WSAGetLastError());
+        iResult = listen(ListenSocket, SOMAXCONN);
+        if (iResult == SOCKET_ERROR) {
+            printf("listen failed with error: %d\n", WSAGetLastError());
+            closesocket(ListenSocket);
+            WSACleanup();
+            return;
+        }
+
+        // Accept a client socket
+        SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
+        if (ClientSocket == INVALID_SOCKET) {
+            printf("accept failed with error: %d\n", WSAGetLastError());
+            closesocket(ListenSocket);
+            WSACleanup();
+            return;
+        }
+        // No longer need server socket
+        closesocket(ListenSocket);
+
+        // Receive until the peer shuts down the connection
+        DWORD iSendResult = 0;
+        std::unique_ptr<DataBuffer> buf(new DataBuffer);
+        do {
+            iResult = recv(ClientSocket, (char *) buf.get(), sizeof(DataBuffer), 0);
+            if (iResult > 0) {
+
+                /// custom function to resolve data
+                FuncRecvData(m_processHandle, buf.get());
+
+                iSendResult = send(ClientSocket, "ResponseOK", 11, 0);
+                if (iSendResult == SOCKET_ERROR) {
+                    printf("send failed with error: %d\n", WSAGetLastError());
+                    closesocket(ClientSocket);
+                    WSACleanup();
+                    return;
+                }
+            } else if (iResult == 0) {
+                printf("Connection closing...\n");
+            } else {
+                printf("recv failed with error: %d\n", WSAGetLastError());
                 closesocket(ClientSocket);
                 WSACleanup();
-                return 1;
+                return;
             }
-            printf("Bytes sent: %d\n", iSendResult);
-        } else if (iResult == 0)
-            printf("Connection closing...\n");
-        else {
-            printf("recv failed with error: %d\n", WSAGetLastError());
+        } while (iResult > 0);
+
+        // shutdown the connection since we're done
+        iResult = shutdown(ClientSocket, SD_SEND);
+        if (iResult == SOCKET_ERROR) {
+            printf("shutdown failed with error: %d\n", WSAGetLastError());
             closesocket(ClientSocket);
             WSACleanup();
-            return 1;
+            return;
         }
-    } while (iResult > 0);
 
-
-    return false;
+        // cleanup
+        closesocket(ClientSocket);
+        WSACleanup();
+    });
 }
 
 bool SocketHook::deleteHook(DWORD HookAddress) {
     return false;
+}
+
+SocketHook::~SocketHook() {
+    m_socketRecvThread.join();
 }
 

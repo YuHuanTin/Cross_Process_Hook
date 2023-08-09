@@ -9,6 +9,7 @@
 #include <Windows.h>
 #include <functional>
 
+#include "HookPoint.h"
 #include "../ControlBlockManager/ControlBlockBase.h"
 
 class ProcessHookBase {
@@ -21,31 +22,16 @@ public:
 
     virtual void commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) = 0;
 
-    virtual bool deleteHook(DWORD HookAddress) = 0;
+    virtual void deleteHook(DWORD HookAddress) = 0;
 
     virtual ~ProcessHookBase();
 
 protected:
-    void patchCodeJmp();
-
     DWORD  m_processID;
     HANDLE m_processHandle;
 
-    std::unique_ptr<ControlBlockBase> m_controlBlock;        // 控制块资源
-
-    struct HookAddrLenWithShellCodeAddr {
-        DWORD       hookAddr;                    // hook地址
-        std::size_t hookLen;                     // hook长度（自动填写 nop）
-        LPVOID      shellCodeAddr;               // shellcode地址
-        std::size_t shellCodeLen;                // shellcode长度
-        HookAddrLenWithShellCodeAddr(DWORD HookAddr, std::size_t HookLen, LPVOID ShellCodeAddr, std::size_t ShellCodeLen) noexcept
-                : hookAddr(HookAddr),
-                  hookLen(HookLen),
-                  shellCodeAddr(ShellCodeAddr),
-                  shellCodeLen(ShellCodeLen) {}
-    };
-
-    std::vector<HookAddrLenWithShellCodeAddr> m_hooks;
+    std::unique_ptr<ControlBlockBase>       m_controlBlock;        // 控制块资源
+    std::vector<std::unique_ptr<HookPoint>> m_hooks;
 };
 
 

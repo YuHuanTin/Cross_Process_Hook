@@ -17,18 +17,21 @@ SocketHook::SocketHook(DWORD ProcessID) : ProcessHookBase(ProcessID) {
 }
 
 void SocketHook::addHook(DWORD HookAddr, std::size_t HookLen) {
-    SocketShellCodeX86 shellCodeX86;
-    LPVOID             shellCodeAddr = Utils::RemoteProcess::allocMemory(m_processHandle);
+    auto hookPoint = std::make_unique<HookPoint>(
+            m_processHandle,
+            (DWORD) m_controlBlock->getControlBlockRemoteAddr(),
+            HookAddr,
+            HookLen,
+            std::make_unique<SocketShellCodeX86>());
 
-    auto shellCode = shellCodeX86.makeShellCode((DWORD) m_controlBlock->getControlBlockRemoteAddr(), (DWORD) shellCodeAddr + 0xF00);
-    Utils::RemoteProcess::writeMemory(m_processHandle, shellCodeAddr, shellCode.data(), shellCode.size());
-
-    m_hooks.emplace_back(HookAddr, HookLen, shellCodeAddr, shellCode.size());
+    m_hooks.emplace_back(std::move(hookPoint));
 }
 
 void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) {
-    // jmp Ìø×ªÌî³ä
-    patchCodeJmp();
+    // Ìî³ä jmp µ½shellcodeµØÖ·
+    for (auto &hook: m_hooks) {
+        hook->coverCodeJmp();
+    }
 
     m_socketRecvThread = std::thread([FuncRecvData = std::move(FuncRecvData), this]() {
         // WSAStartup
@@ -85,7 +88,7 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
         closesocket(ListenSocket);
 
         // Receive until the peer shuts down the connection
-        DWORD iSendResult = 0;
+        DWORD                       iSendResult = 0;
         std::unique_ptr<DataBuffer> buf(new DataBuffer);
         do {
             iResult = recv(ClientSocket, (char *) buf.get(), sizeof(DataBuffer), 0);
@@ -126,8 +129,12 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
     });
 }
 
-bool SocketHook::deleteHook(DWORD HookAddress) {
-    return false;
+void SocketHook::deleteHook(DWORD HookAddress) {
+    for (auto &hook: m_hooks) {
+        if (HookAddress == hook->getHookAddr()) {
+            hook->recoverCodeJmp();
+        }
+    }
 }
 
 SocketHook::~SocketHook() {

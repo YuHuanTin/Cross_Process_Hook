@@ -9,6 +9,8 @@ public:
 
     virtual std::vector<std::uint8_t> makeShellCode(DWORD ControlBlockAddr, DWORD RegisterStorageAddr) = 0;
 
+    virtual ~ShellCodeBase() = default;
+
 protected:
     virtual std::vector<std::uint8_t> &insertRegisterSaveCode(std::vector<std::uint8_t> &CodeData);
 

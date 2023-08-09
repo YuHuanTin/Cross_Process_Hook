@@ -32,6 +32,8 @@ add_executable(Cross_Process_Hook
         ProcessHooker/SocketHook.h
         ShellCodeMaker/SocketShellCodeX86.cpp
         ShellCodeMaker/SocketShellCodeX86.h
+        ProcessHooker/HookPoint.cpp
+        ProcessHooker/HookPoint.h
 )
 
 target_link_libraries(Cross_Process_Hook fmt::fmt)

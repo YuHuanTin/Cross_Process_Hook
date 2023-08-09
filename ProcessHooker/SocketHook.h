@@ -16,7 +16,7 @@ public:
 
     void commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) override;
 
-    bool deleteHook(DWORD HookAddress) override;
+    void deleteHook(DWORD HookAddress) override;
 
     ~SocketHook();
 

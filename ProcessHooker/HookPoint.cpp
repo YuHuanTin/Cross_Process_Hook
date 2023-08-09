@@ -5,13 +5,14 @@
 #include "../Utils/MyException.h"
 
 
-HookPoint::HookPoint(HANDLE ProcessHandle, DWORD ControlBlockAddr, DWORD HookAddr, std::size_t HookLen, std::unique_ptr<ShellCodeBase> ShellCodeBase)
-        : m_processHandle(ProcessHandle),
+HookPoint::HookPoint(DWORD ProcessID, DWORD ControlBlockAddr, DWORD HookAddr, std::size_t HookLen, std::unique_ptr<ShellCodeBase> ShellCodeBase)
+        : m_processID(ProcessID),
+          m_processHandle(OpenProcess(PROCESS_ALL_ACCESS, FALSE, m_processID)),
           m_hookAddr(HookAddr),
           m_hookLen(HookLen) {
     m_shellCodeAddr = (DWORD) Utils::RemoteProcess::allocMemory(m_processHandle);
     auto shellCode = ShellCodeBase->makeShellCode(ControlBlockAddr, m_shellCodeAddr + 0xF00);
-    m_shellCodeLen  = shellCode.size();
+    m_shellCodeLen = shellCode.size();
     Utils::RemoteProcess::writeMemory(m_processHandle, (LPVOID) m_shellCodeAddr, shellCode.data(), shellCode.size());
 
     m_hookState = ALLOC_MEMORY;
@@ -65,6 +66,7 @@ void HookPoint::recoverCodeJmp() {
 HookPoint::~HookPoint() {
     recoverCodeJmp();
     Utils::RemoteProcess::freeMemory(m_processHandle, (LPVOID) m_shellCodeAddr);
+    CloseHandle(m_processHandle);
 }
 
 

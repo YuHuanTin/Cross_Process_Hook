@@ -112,13 +112,13 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     m_functionOrdToRva       = parseResult.functionOrdToRva;
     m_exportDirectoryOrdBase = parseResult.exportDirectoryOrdBase;
 
-    return false;
+    return true;
 }
 
 std::optional<DWORD> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
     auto it = m_functionNameToOrd.find(FunctionName);
     if (it != m_functionNameToOrd.end())
-        return it->second + (WithBaseAddress ? m_moduleBaseAddress : 0);
+        return m_functionOrdToRva.at(it->second) + (WithBaseAddress ? m_moduleBaseAddress : 0);
     return std::nullopt;
 }
 

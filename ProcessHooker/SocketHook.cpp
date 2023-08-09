@@ -18,8 +18,8 @@ SocketHook::SocketHook(DWORD ProcessID) : ProcessHookBase(ProcessID) {
 
 void SocketHook::addHook(DWORD HookAddr, std::size_t HookLen) {
     auto hookPoint = std::make_unique<HookPoint>(
-            m_processHandle,
-            (DWORD) m_controlBlock->getControlBlockRemoteAddr(),
+            m_processID,
+            m_controlBlock->getControlBlockRemoteAddr(),
             HookAddr,
             HookLen,
             std::make_unique<SocketShellCodeX86>());
@@ -76,6 +76,7 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
             return;
         }
 
+        // 至少在析构前完成一次消息接收，否则阻塞在这里
         // Accept a client socket
         SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
         if (ClientSocket == INVALID_SOCKET) {
@@ -95,9 +96,11 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
             if (iResult > 0) {
 
                 /// custom function to resolve data
-                FuncRecvData(m_processHandle, buf.get());
+                if (!FuncRecvData(m_processHandle, buf.get())) {
+                    break;
+                }
 
-                iSendResult = send(ClientSocket, "ResponseOK", 11, 0);
+                iSendResult = send(ClientSocket, "ReOK", 5, 0);
                 if (iSendResult == SOCKET_ERROR) {
                     printf("send failed with error: %d\n", WSAGetLastError());
                     closesocket(ClientSocket);
@@ -130,14 +133,52 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
 }
 
 void SocketHook::deleteHook(DWORD HookAddress) {
-    for (auto &hook: m_hooks) {
-        if (HookAddress == hook->getHookAddr()) {
-            hook->recoverCodeJmp();
+    for (std::size_t i = 0; i < m_hooks.size(); ++i) {
+        if (HookAddress == m_hooks.at(i)->getHookAddr()) {
+            m_hooks.at(i)->recoverCodeJmp();
+            m_hooks.erase(m_hooks.begin() + i);
+            break;
         }
     }
 }
 
+/// 至少在析构前完成一次消息接收，否则阻塞在accept
 SocketHook::~SocketHook() {
-    m_socketRecvThread.join();
+    if (m_socketRecvThread.joinable()) {
+        m_socketRecvThread.join();
+
+        // 显式删除所有hook点防止再次进入目标进程的socket循环
+        for (auto &one: m_hooks) {
+            one->recoverCodeJmp();
+        }
+        // 关闭目标进程的socket
+        DWORD closeSocket = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.closesocket;
+        DWORD wsaCleanup  = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.WSACleanup;
+        auto  hSocket     = Utils::RemoteProcess::readMemory<SOCKET>(
+                m_processHandle,
+                m_controlBlock->getControlBlockRemoteAddr() + offsetof(ControlBlock, hSocket),
+                1
+        );
+
+        auto hThread = Utils::AutoPtr::moveHandleOwner(CreateRemoteThread(m_processHandle,
+                                                                          nullptr,
+                                                                          0,
+                                                                          (LPTHREAD_START_ROUTINE) closeSocket,
+                                                                          (LPVOID) *hSocket.get(),
+                                                                          0,
+                                                                          NULL)
+        );
+        WaitForSingleObject(hThread.get(), INFINITE);
+
+        hThread = Utils::AutoPtr::moveHandleOwner(CreateRemoteThread(m_processHandle,
+                                                                     nullptr,
+                                                                     0,
+                                                                     (LPTHREAD_START_ROUTINE) wsaCleanup,
+                                                                     nullptr,
+                                                                     0,
+                                                                     NULL)
+        );
+        WaitForSingleObject(hThread.get(), INFINITE);
+    }
 }
 

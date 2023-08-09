@@ -28,7 +28,11 @@ void ControlBlockBase::injectControlBlock() {
     Utils::RemoteProcess::writeMemory(m_processHandle, m_controlBlockRemoteAddr, m_controlBlock.get(), sizeof(ControlBlock));
 }
 
-LPVOID ControlBlockBase::getControlBlockRemoteAddr() const noexcept {
-    return m_controlBlockRemoteAddr;
+DWORD ControlBlockBase::getControlBlockRemoteAddr() const noexcept {
+    return (DWORD)m_controlBlockRemoteAddr;
+}
+
+std::unique_ptr<ControlBlock> &ControlBlockBase::getControlBlockRef() noexcept {
+    return m_controlBlock;
 }
 

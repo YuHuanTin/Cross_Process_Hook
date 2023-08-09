@@ -17,7 +17,9 @@ public:
 
     void injectControlBlock();
 
-    LPVOID getControlBlockRemoteAddr() const noexcept;
+    DWORD getControlBlockRemoteAddr() const noexcept;
+
+    std::unique_ptr<ControlBlock> & getControlBlockRef() noexcept;
 
     virtual ~ControlBlockBase();
 

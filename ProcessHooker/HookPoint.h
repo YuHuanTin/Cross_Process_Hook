@@ -15,6 +15,7 @@ private:
     enum HookState {
         ALLOC_MEMORY, COMMIT_MEMORY
     };
+    DWORD                           m_processID;
     HANDLE                          m_processHandle;
     DWORD                           m_hookAddr;                    // hook地址
     std::size_t                     m_hookLen;                     // hook长度（自动填写 nop）
@@ -24,7 +25,7 @@ private:
     HookState                       m_hookState;                   // hook状态
 
 public:
-    HookPoint(HANDLE ProcessHandle, DWORD ControlBlockAddr, DWORD HookAddr, std::size_t HookLen, std::unique_ptr<ShellCodeBase> ShellCodeBase);
+    HookPoint(DWORD ProcessID, DWORD ControlBlockAddr, DWORD HookAddr, std::size_t HookLen, std::unique_ptr<ShellCodeBase> ShellCodeBase);
 
     DWORD getHookAddr() const noexcept;
 

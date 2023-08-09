@@ -18,7 +18,7 @@ public:
 
     void deleteHook(DWORD HookAddress) override;
 
-    ~SocketHook();
+    ~SocketHook() override;
 
 private:
 

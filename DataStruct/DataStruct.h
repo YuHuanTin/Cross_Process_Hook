@@ -31,25 +31,21 @@ struct ControlBlock {
 
     };
 #elif _WIN32
-    // 结构体对于开头的偏移（十进制）
-    DWORD offsetSocketFunction       = 28;
-    DWORD offsetPipeFunction         = 0;
-    DWORD offsetSharedMemoryFunction = 0;
 
     struct SocketFunctionAddress {
         /// ucrtbase.dll
-        DWORD malloc      = 0;               // function[0] = 'malloc'
-        DWORD free        = 0;               // function[1] = 'free'
+        DWORD malloc      = 0;
+        DWORD free        = 0;
         /// ws2_32.dll
-        DWORD WSAStartup  = 0;               // function[2] = 'WSAStartup'
-        DWORD WSACleanup  = 0;               // function[3] = 'WSACleanup'
-        DWORD socket      = 0;               // function[4] = 'socket'
-        DWORD connect     = 0;               // function[5] = 'connect'
-        DWORD send        = 0;               // function[6] = 'send'
-        DWORD recv        = 0;               // function[7] = 'recv'
-        DWORD closesocket = 0;               // function[8] = 'closesocket'
-        DWORD htons       = 0;               // function[9] = 'htons'
-        DWORD inet_addr   = 0;               // function[10] = 'inet_addr'
+        DWORD WSAStartup  = 0;
+        DWORD WSACleanup  = 0;
+        DWORD socket      = 0;
+        DWORD connect     = 0;
+        DWORD send        = 0;
+        DWORD recv        = 0;
+        DWORD closesocket = 0;
+        DWORD htons       = 0;
+        DWORD inet_addr   = 0;
     }     PSocketFunctionAddress;
 #endif
 

@@ -13,7 +13,7 @@ namespace Utils {
     namespace RemoteProcess {
         std::optional<DWORD> getProcessID(const std::string &ProcessName) {
             auto hSnapshot = Utils::AutoPtr::moveHandleOwner(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
-            if (!hSnapshot || hSnapshot.get() == INVALID_HANDLE_VALUE)
+            if (hSnapshot.get() == INVALID_HANDLE_VALUE)
                 throw MyException("CreateToolhelp32Snapshot", GetLastError(), __FUNCTION__);
 
             PROCESSENTRY32 pe;
@@ -33,7 +33,7 @@ namespace Utils {
 
         std::optional<MODULEENTRY32> getProcessModule(DWORD ProcessID, const std::string &DllName) {
             auto hSnapshot = Utils::AutoPtr::moveHandleOwner(CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, ProcessID));
-            if (!hSnapshot || hSnapshot.get() == INVALID_HANDLE_VALUE)
+            if (hSnapshot.get() == INVALID_HANDLE_VALUE)
                 throw MyException("CreateToolhelp32Snapshot", GetLastError(), __FUNCTION__);
 
             MODULEENTRY32 moduleEntry;
@@ -65,21 +65,25 @@ namespace Utils {
             }
 
             writeMemory(ProcessHandle, allocMemoryAddress, DllPath.data(), DllPath.size());
-            HANDLE hThread = CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddress, allocMemoryAddress, 0, NULL);
-            if (!hThread) {
+
+            auto hThread = Utils::AutoPtr::moveHandleOwner(
+                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddress, allocMemoryAddress, 0, NULL)
+            );
+            if (hThread.get() == INVALID_HANDLE_VALUE) {
                 freeMemory(ProcessHandle, allocMemoryAddress);
                 throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
             }
-            WaitForSingleObject(hThread, INFINITE);
+            WaitForSingleObject(hThread.get(), INFINITE);
             freeMemory(ProcessHandle, allocMemoryAddress);
         }
 
         void freeDll(HANDLE ProcessHandle, DWORD FreelibraryAddress, HMODULE DllModule) {
-            HANDLE hThread = CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddress, DllModule, 0, NULL);
-            if (!hThread) {
+            auto hThread = Utils::AutoPtr::moveHandleOwner(
+                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddress, DllModule, 0, NULL)
+            );
+            if (hThread.get() == INVALID_HANDLE_VALUE)
                 throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
-            }
-            WaitForSingleObject(hThread, INFINITE);
+            WaitForSingleObject(hThread.get(), INFINITE);
         }
 
         LPVOID allocMemory(HANDLE ProcessHandle, DWORD Size) {
@@ -100,7 +104,7 @@ namespace Utils {
         std::string stringToLower(const std::string &RawString) noexcept {
             std::string newString = RawString;
             for (auto   &one: newString) {
-                if ((uint8_t )one < 0x7F && isalpha(one) && isupper(one)) {
+                if ((uint8_t) one < 0x7F && isalpha(one) && isupper(one)) {
                     one = tolower(one);
                 }
             }

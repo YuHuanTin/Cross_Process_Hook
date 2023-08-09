@@ -11,7 +11,6 @@ add_executable(Cross_Process_Hook
         ShellCodeMaker/ShellCodeBase.h
         ShellCodeMaker/ShellCodeBase.cpp
         DataStruct/DataStruct.h
-        DataStruct/DataStruct.cpp
         DllFuncRVAReader/RVAReaderBase.cpp
         DllFuncRVAReader/RVAReaderBase.h
         Utils/Utils.cpp

@@ -17,16 +17,31 @@ struct AutoDelete_CloseHandle {
     }
 };
 
+class AutoDelete_FreeMemory {
+private:
+    HANDLE m_processHandle;
+    LPVOID m_allocAddr;
+
+public:
+    AutoDelete_FreeMemory(HANDLE ProcessHandle, LPVOID Address)
+            : m_processHandle(ProcessHandle),
+              m_allocAddr(Address) {}
+
+    [[nodiscard]] LPVOID getAddr() const noexcept {
+        return m_allocAddr;
+    }
+
+    ~AutoDelete_FreeMemory() {
+        // 如果失败，我们也无法处理
+        VirtualFreeEx(m_processHandle, m_allocAddr, 0, MEM_RELEASE);
+    }
+};
+
 namespace Utils {
     namespace AutoPtr {
         template<typename ElementType>
         std::unique_ptr<ElementType[]> makeElementArray(std::size_t ElementSize) noexcept {
             return std::make_unique<ElementType[]>(ElementSize);
-        }
-
-        template<typename Type>
-        std::unique_ptr<Type> moveTypeOwner(Type *Item) noexcept {
-            return std::unique_ptr<Type>(Item);
         }
 
         std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> moveHandleOwner(HANDLE Handle) noexcept;
@@ -35,66 +50,37 @@ namespace Utils {
     namespace RemoteProcess {
         /**
          * 一定有值，否则异常，不需要判断是否有值
+         * 读取 NumbOfType 个 ElementType 元素
          *
          * @tparam ElementType
          * @param ProcessHandle
          * @param Address
-         * @param Len
+         * @param NumbOfType
          * @return
          */
         template<typename ElementType>
-        std::unique_ptr<ElementType[]> readMemory(HANDLE ProcessHandle, DWORD Address, DWORD Len) {
-            auto ptr = Utils::AutoPtr::makeElementArray<ElementType>(Len);
-            if (!ReadProcessMemory(ProcessHandle, (LPCVOID) Address, ptr.get(), sizeof(ElementType) * Len, nullptr)) {
+        std::unique_ptr<ElementType[]> readMemory(HANDLE ProcessHandle, LPVOID Address, std::size_t NumbOfType) {
+            auto ptr = Utils::AutoPtr::makeElementArray<ElementType>(NumbOfType);
+            if (!ReadProcessMemory(ProcessHandle, Address, ptr.get(), sizeof(ElementType) * NumbOfType, nullptr)) {
                 throw MyException("ReadProcessMemory", GetLastError(), __FUNCTION__);
             }
             return ptr;
         }
 
         /**
-         * 一定成功，否则异常，不需要判断是否有值
-         *
-         * @tparam ElementType
-         * @param ProcessID
-         * @param Address
-         * @param Len
-         * @return
-         */
-        template<typename ElementType>
-        std::unique_ptr<ElementType[]> readMemory(DWORD ProcessID, DWORD Address, DWORD Len) {
-            auto processHandle = getProcessHandle(ProcessID);
-            return readMemory<ElementType>(processHandle.get(), Address, Len);
-        }
-
-        /**
          * 一定成功，否则异常
          *
          * @tparam ElementType
          * @param ProcessHandle
          * @param Address
          * @param Data
-         * @param DataLen
+         * @param NumbOfByte
          */
         template<typename ElementType>
-        void writeMemory(HANDLE ProcessHandle, LPVOID Address, ElementType Data[], std::size_t DataLen) {
-            if (!WriteProcessMemory(ProcessHandle, Address, Data, DataLen, nullptr)) {
+        void writeMemory(HANDLE ProcessHandle, LPVOID Address, ElementType Data[], std::size_t NumbOfByte) {
+            if (!WriteProcessMemory(ProcessHandle, Address, Data, NumbOfByte, nullptr)) {
                 throw MyException("WriteProcessMemory", GetLastError(), __FUNCTION__);
             }
-        }
-
-        /**
-         * 一定成功，否则异常
-         *
-         * @tparam ElementType
-         * @param ProcessID
-         * @param Address
-         * @param Data
-         * @param DataLen
-         */
-        template<typename ElementType>
-        void writeMemory(DWORD ProcessID, LPVOID Address, ElementType Data[], std::size_t DataLen) {
-            auto processHandle = getProcessHandle(ProcessID);
-            writeMemory(processHandle.get(), Address, Data, DataLen);
         }
 
         std::optional<DWORD> getProcessID(const std::string &ProcessName);
@@ -103,9 +89,9 @@ namespace Utils {
 
         std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> getProcessHandle(DWORD ProcessID) noexcept;
 
-        void loadDll(HANDLE ProcessHandle, DWORD LoadlibraryAddress, const std::string &DllPath);
+        void loadDll(HANDLE ProcessHandle, LPVOID LoadlibraryAddr, const std::string &DllPath);
 
-        void freeDll(HANDLE ProcessHandle, DWORD FreelibraryAddress, HMODULE DllModule);
+        void freeDll(HANDLE ProcessHandle, LPVOID FreelibraryAddr, HMODULE DllModule);
 
         /**
          * 一定有值，否则异常，不需要判断是否有值
@@ -114,9 +100,7 @@ namespace Utils {
          * @param Size
          * @return
          */
-        LPVOID allocMemory(HANDLE ProcessHandle, DWORD Size = 0x1000);
-
-        void freeMemory(HANDLE ProcessHandle, LPVOID Address);
+        std::unique_ptr<AutoDelete_FreeMemory> allocMemory(HANDLE ProcessHandle, DWORD Size = 0x1000);
     }
 
     namespace String {

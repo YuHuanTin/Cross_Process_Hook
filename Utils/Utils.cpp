@@ -55,48 +55,40 @@ namespace Utils {
             return Utils::AutoPtr::moveHandleOwner(OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessID));
         }
 
-        void loadDll(HANDLE ProcessHandle, DWORD LoadlibraryAddress, const std::string &DllPath) {
-            LPVOID allocMemoryAddress = allocMemory(ProcessHandle);
+        void loadDll(HANDLE ProcessHandle, LPVOID LoadlibraryAddr, const std::string &DllPath) {
+            auto allocMemoryAddr = allocMemory(ProcessHandle);
 
             DWORD oldProtect = 0;
-            if (!VirtualProtectEx(ProcessHandle, allocMemoryAddress, 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-                freeMemory(ProcessHandle, allocMemoryAddress);
+            if (!VirtualProtectEx(ProcessHandle, allocMemoryAddr->getAddr(), 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect)) {
                 throw MyException("VirtualProtectEx", GetLastError(), __FUNCTION__);
             }
 
-            writeMemory(ProcessHandle, allocMemoryAddress, DllPath.data(), DllPath.size());
+            writeMemory(ProcessHandle, allocMemoryAddr->getAddr(), DllPath.data(), DllPath.size());
 
             auto hThread = Utils::AutoPtr::moveHandleOwner(
-                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddress, allocMemoryAddress, 0, NULL)
+                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddr, allocMemoryAddr->getAddr(), 0, NULL)
             );
             if (hThread.get() == INVALID_HANDLE_VALUE) {
-                freeMemory(ProcessHandle, allocMemoryAddress);
                 throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
             }
             WaitForSingleObject(hThread.get(), INFINITE);
-            freeMemory(ProcessHandle, allocMemoryAddress);
         }
 
-        void freeDll(HANDLE ProcessHandle, DWORD FreelibraryAddress, HMODULE DllModule) {
+        void freeDll(HANDLE ProcessHandle, LPVOID FreelibraryAddr, HMODULE DllModule) {
             auto hThread = Utils::AutoPtr::moveHandleOwner(
-                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddress, DllModule, 0, NULL)
+                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddr, DllModule, 0, NULL)
             );
             if (hThread.get() == INVALID_HANDLE_VALUE)
                 throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
             WaitForSingleObject(hThread.get(), INFINITE);
         }
 
-        LPVOID allocMemory(HANDLE ProcessHandle, DWORD Size) {
+        std::unique_ptr<AutoDelete_FreeMemory> allocMemory(HANDLE ProcessHandle, DWORD Size) {
             LPVOID addr = VirtualAllocEx(ProcessHandle, nullptr, Size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
             if (!addr)
                 throw MyException("VirtualAllocEx", GetLastError(), __FUNCTION__);
-            return addr;
-        }
 
-        void freeMemory(HANDLE ProcessHandle, LPVOID Address) {
-            if (!VirtualFreeEx(ProcessHandle, Address, 0, MEM_RELEASE)) {
-                throw MyException("VirtualFreeEx", GetLastError(), __FUNCTION__);
-            }
+            return std::make_unique<AutoDelete_FreeMemory>(ProcessHandle, addr);
         }
     }
 

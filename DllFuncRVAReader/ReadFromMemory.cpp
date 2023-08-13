@@ -15,17 +15,17 @@ struct parseRetType {
  * 获取 ProcessHandle 进程的以 ModuleBaseAddress 开始的 PE 节地址和大小
  *
  * @param ProcessHandle
- * @param ModuleBaseAddress
+ * @param ModuleBaseAddr
  * @return
  */
-std::pair<DWORD, DWORD> getPEAddressWithSize(HANDLE ProcessHandle, DWORD ModuleBaseAddress) {
+std::pair<LPVOID, DWORD> getPEAddressWithSize(HANDLE ProcessHandle, DWORD ModuleBaseAddr) {
     MEMORY_BASIC_INFORMATION basicInformation;
 
-    DWORD retSize = VirtualQueryEx(ProcessHandle, (LPCVOID) ModuleBaseAddress, &basicInformation, sizeof(MEMORY_BASIC_INFORMATION));
+    DWORD retSize = VirtualQueryEx(ProcessHandle, (LPCVOID) ModuleBaseAddr, &basicInformation, sizeof(MEMORY_BASIC_INFORMATION));
     if (retSize == 0) {
         throw MyException("VirtualQueryEx", GetLastError(), __FUNCTION__);
     }
-    return {(DWORD) basicInformation.BaseAddress, basicInformation.RegionSize};
+    return {basicInformation.BaseAddress, basicInformation.RegionSize};
 }
 
 /**
@@ -33,12 +33,12 @@ std::pair<DWORD, DWORD> getPEAddressWithSize(HANDLE ProcessHandle, DWORD ModuleB
  * 获取 ProcessHandle 进程的导出表信息（RVA + Size）
  *
  * @param ProcessHandle
- * @param PEAddress
+ * @param PEAddr
  * @param PESize
  * @return
  */
-std::pair<DWORD, DWORD> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, DWORD PEAddress, DWORD PESize) {
-    auto memoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddress, PESize);
+std::pair<DWORD, DWORD> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, LPVOID PEAddr, DWORD PESize) {
+    auto memoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddr, PESize);
 
     // 获取 dos 头
     IMAGE_DOS_HEADER dosHeader;
@@ -59,13 +59,14 @@ std::pair<DWORD, DWORD> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, DWORD
  * 解析 ProcessHandle 进程的 PEAddress + ExportDirectoryRVA 处的导出表数据
  *
  * @param ProcessHandle
- * @param PEAddress
+ * @param PEAddr
  * @param ExportDirectoryRVA
  * @param ExportDirectorySize
  * @return
  */
-parseRetType parseExportDirectory(HANDLE ProcessHandle, DWORD PEAddress, DWORD ExportDirectoryRVA, DWORD ExportDirectorySize) {
-    auto exportDirectoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddress + ExportDirectoryRVA, ExportDirectorySize);
+parseRetType parseExportDirectory(HANDLE ProcessHandle, LPVOID PEAddr, DWORD ExportDirectoryRVA, DWORD ExportDirectorySize) {
+    auto exportDirectoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, (LPVOID) ((std::size_t) PEAddr + ExportDirectoryRVA),
+                                                                         ExportDirectorySize);
 
     IMAGE_EXPORT_DIRECTORY exportDirectory;
     exportDirectory = *(IMAGE_EXPORT_DIRECTORY *) exportDirectoryData.get();
@@ -107,7 +108,7 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     auto parseResult               = parseExportDirectory(m_processHandle, peSegmentAddressWithSize.first, exportDirectoryRvaAndSize.first,
                                                           exportDirectoryRvaAndSize.second);
 
-    m_moduleBaseAddress      = (DWORD) processModule->modBaseAddr;
+    m_moduleBaseAddr         = processModule->modBaseAddr;
     m_functionNameToOrd      = parseResult.functionNameToOrd;
     m_functionOrdToRva       = parseResult.functionOrdToRva;
     m_exportDirectoryOrdBase = parseResult.exportDirectoryOrdBase;
@@ -115,16 +116,16 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     return true;
 }
 
-std::optional<DWORD> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
+std::optional<LPVOID> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
     auto it = m_functionNameToOrd.find(FunctionName);
     if (it != m_functionNameToOrd.end())
-        return m_functionOrdToRva.at(it->second) + (WithBaseAddress ? m_moduleBaseAddress : 0);
+        return (LPVOID) (m_functionOrdToRva.at(it->second) + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0));
     return std::nullopt;
 }
 
-std::optional<DWORD> ReadFromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
+std::optional<LPVOID> ReadFromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
     auto it = m_functionOrdToRva.find(FunctionOrd - m_exportDirectoryOrdBase);
     if (it != m_functionOrdToRva.end())
-        return it->second + (WithBaseAddress ? m_moduleBaseAddress : 0);
+        return (LPVOID) (it->second + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0));
     return std::nullopt;
 }

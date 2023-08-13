@@ -1,6 +1,5 @@
 
 #include "ControlBlockBase.h"
-#include "../Utils/Utils.h"
 
 ControlBlockBase::ControlBlockBase(DWORD ProcessID)
         : m_processID(ProcessID),
@@ -10,26 +9,22 @@ ControlBlockBase::ControlBlockBase(DWORD ProcessID)
 
 ControlBlockBase::~ControlBlockBase() {
     /// 释放目标进程因为 hook 而加载的 dll
-    for (const auto &one: m_hookLoadDlls) {
-        if (m_rvaReader->isDllLoaded(one)) {
-            Utils::RemoteProcess::freeDll(m_processHandle, m_freeLibraryAddr, Utils::RemoteProcess::getProcessModule(m_processID, one).value().hModule);
+    for (const auto &dllName: m_hookLoadDlls) {
+        if (m_rvaReader->isDllLoaded(dllName)) {
+            Utils::RemoteProcess::freeDll(m_processHandle, m_freeLibraryAddr, Utils::RemoteProcess::getProcessModule(m_processID, dllName).value().hModule);
         }
     }
 
-    /// 释放目标进程的控制块内存
-    if (m_controlBlockRemoteAddr) {
-        Utils::RemoteProcess::freeMemory(m_processHandle, m_controlBlockRemoteAddr);
-    }
     CloseHandle(m_processHandle);
 }
 
 void ControlBlockBase::injectControlBlock() {
-    m_controlBlockRemoteAddr = Utils::RemoteProcess::allocMemory(m_processHandle);
-    Utils::RemoteProcess::writeMemory(m_processHandle, m_controlBlockRemoteAddr, m_controlBlock.get(), sizeof(ControlBlock));
+    m_controlAddr = Utils::RemoteProcess::allocMemory(m_processHandle);
+    Utils::RemoteProcess::writeMemory(m_processHandle, m_controlAddr->getAddr(), m_controlBlock.get(), sizeof(ControlBlock));
 }
 
-DWORD ControlBlockBase::getControlBlockRemoteAddr() const noexcept {
-    return (DWORD)m_controlBlockRemoteAddr;
+LPVOID ControlBlockBase::getControlBlockRemoteAddr() const noexcept {
+    return m_controlAddr->getAddr();
 }
 
 std::unique_ptr<ControlBlock> &ControlBlockBase::getControlBlockRef() noexcept {

@@ -34,23 +34,36 @@ struct ControlBlock {
 
     struct SocketFunctionAddress {
         /// ucrtbase.dll
-        DWORD malloc      = 0;
-        DWORD free        = 0;
+        LPVOID malloc      = nullptr;
+        LPVOID free        = nullptr;
         /// ws2_32.dll
-        DWORD WSAStartup  = 0;
-        DWORD WSACleanup  = 0;
-        DWORD socket      = 0;
-        DWORD connect     = 0;
-        DWORD send        = 0;
-        DWORD recv        = 0;
-        DWORD closesocket = 0;
-        DWORD htons       = 0;
-        DWORD inet_addr   = 0;
-    }     PSocketFunctionAddress;
+        LPVOID WSAStartup  = nullptr;
+        LPVOID WSACleanup  = nullptr;
+        LPVOID socket      = nullptr;
+        LPVOID connect     = nullptr;
+        LPVOID send        = nullptr;
+        LPVOID recv        = nullptr;
+        LPVOID closesocket = nullptr;
+        LPVOID htons       = nullptr;
+        LPVOID inet_addr   = nullptr;
+    }       PSocketFunctionAddress;
 #endif
 
 };
 
+#if _WIN64
+struct DataBuffer {
+    DWORD edi;
+    DWORD esi;
+    DWORD ebp;
+    DWORD esp;
+    DWORD ebx;
+    DWORD edx;
+    DWORD ecx;
+    DWORD eax;
+    DWORD whereFrom;
+};
+#elif _WIN32
 // 按照 pushad 的顺序接收
 struct DataBuffer {
     DWORD edi;
@@ -63,6 +76,7 @@ struct DataBuffer {
     DWORD eax;
     DWORD whereFrom;
 };
+#endif
 
 
 #endif //CROSS_PROCESS_HOOK_DATASTRUCT_H

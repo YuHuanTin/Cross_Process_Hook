@@ -11,14 +11,14 @@ public:
 
     bool initSearch(const std::string &DllName) override;
 
-    [[nodiscard]] std::optional<DWORD> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const override;
+    [[nodiscard]] std::optional<LPVOID> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const override;
 
-    [[nodiscard]] std::optional<DWORD> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
+    [[nodiscard]] std::optional<LPVOID> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
 
     ~ReadFromFile() override;
 
 private:
-    HMODULE m_hmodule           = nullptr;
+    HMODULE m_hmodule = nullptr;
 };
 
 

@@ -6,6 +6,7 @@
 #include <memory>
 #include <Windows.h>
 
+#include "../Utils/Utils.h"
 #include "../DataStruct/DataStruct.h"
 #include "../DllFuncRVAReader/ReadFromFile.h"
 
@@ -17,23 +18,23 @@ public:
 
     void injectControlBlock();
 
-    DWORD getControlBlockRemoteAddr() const noexcept;
+    [[nodiscard]] LPVOID getControlBlockRemoteAddr() const noexcept;
 
-    std::unique_ptr<ControlBlock> & getControlBlockRef() noexcept;
+    std::unique_ptr<ControlBlock> &getControlBlockRef() noexcept;
 
     virtual ~ControlBlockBase();
 
 protected:
     DWORD  m_processID;
-    HANDLE m_processHandle;
-    LPVOID m_controlBlockRemoteAddr = nullptr;          // 控制块在目标进程的地址
+    HANDLE m_processHandle = INVALID_HANDLE_VALUE;
 
-    std::unique_ptr<ControlBlock>  m_controlBlock;      // 控制块的资源
-    std::unique_ptr<RVAReaderBase> m_rvaReader;         // rvaReader的资源
+    std::unique_ptr<ControlBlock>          m_controlBlock;      // 控制块的资源
+    std::unique_ptr<RVAReaderBase>         m_rvaReader;         // rvaReader的资源
+    std::unique_ptr<AutoDelete_FreeMemory> m_controlAddr;       // 控制块在目标进程的内存地址
 
     std::vector<std::string> m_hookLoadDlls;            // 保存需要释放的dll
-    DWORD                    m_loadLibraryAddr = 0;
-    DWORD                    m_freeLibraryAddr = 0;
+    LPVOID                   m_loadLibraryAddr = 0;
+    LPVOID                   m_freeLibraryAddr = 0;
 };
 
 

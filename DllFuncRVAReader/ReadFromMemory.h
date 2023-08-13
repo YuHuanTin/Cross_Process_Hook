@@ -12,14 +12,14 @@ public:
 
     bool initSearch(const std::string &DllName) override;
 
-    [[nodiscard]] std::optional<DWORD> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const override;
+    [[nodiscard]] std::optional<LPVOID> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const override;
 
-    [[nodiscard]] std::optional<DWORD> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
+    [[nodiscard]] std::optional<LPVOID> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
 
     ~ReadFromMemory() override = default;
 
 private:
-    DWORD                                 m_moduleBaseAddress      = 0;
+    LPVOID                                m_moduleBaseAddr         = nullptr;
     DWORD                                 m_exportDirectoryOrdBase = 0;
     std::unordered_map<std::string, WORD> m_functionNameToOrd;
     std::unordered_map<WORD, DWORD>       m_functionOrdToRva;

@@ -11,17 +11,17 @@ bool ReadFromFile::initSearch(const std::string &DllName) {
     return true;
 }
 
-std::optional<DWORD> ReadFromFile::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
+std::optional<LPVOID> ReadFromFile::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
     auto address = GetProcAddress(m_hmodule, (LPCSTR) FunctionName.c_str());
     if (address != nullptr)
-        return (DWORD) address - (WithBaseAddress ? 0 : (DWORD) m_hmodule);
+        return (LPVOID) ((std::size_t) address - (WithBaseAddress ? 0 : (std::size_t) m_hmodule));
     return std::nullopt;
 }
 
-std::optional<DWORD> ReadFromFile::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
+std::optional<LPVOID> ReadFromFile::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
     auto address = GetProcAddress(m_hmodule, (LPCSTR) FunctionOrd);
     if (address != nullptr)
-        return (DWORD) address - (WithBaseAddress ? 0 : (DWORD) m_hmodule);
+        return (LPVOID) ((std::size_t) address - (WithBaseAddress ? 0 : (std::size_t) m_hmodule));
     return std::nullopt;
 }
 

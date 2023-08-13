@@ -35,7 +35,7 @@ public:
      * @param WithBaseAddress
      * @return
      */
-    [[nodiscard]] virtual std::optional<LPVOID> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const = 0;
+    [[nodiscard]] virtual std::optional<std::size_t> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const = 0;
 
     /**
      * ∞¥’’–Ú∫≈≤È’“ RVA
@@ -44,7 +44,7 @@ public:
      * @param WithBaseAddress
      * @return
      */
-    [[nodiscard]] virtual std::optional<LPVOID> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const = 0;
+    [[nodiscard]] virtual std::optional<std::size_t> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const = 0;
 
     virtual ~RVAReaderBase();
 

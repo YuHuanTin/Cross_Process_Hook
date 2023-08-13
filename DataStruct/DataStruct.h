@@ -34,18 +34,18 @@ struct ControlBlock {
 
     struct SocketFunctionAddress {
         /// ucrtbase.dll
-        LPVOID malloc      = nullptr;
-        LPVOID free        = nullptr;
+        DWORD malloc      = 0;
+        DWORD free        = 0;
         /// ws2_32.dll
-        LPVOID WSAStartup  = nullptr;
-        LPVOID WSACleanup  = nullptr;
-        LPVOID socket      = nullptr;
-        LPVOID connect     = nullptr;
-        LPVOID send        = nullptr;
-        LPVOID recv        = nullptr;
-        LPVOID closesocket = nullptr;
-        LPVOID htons       = nullptr;
-        LPVOID inet_addr   = nullptr;
+        DWORD WSAStartup  = 0;
+        DWORD WSACleanup  = 0;
+        DWORD socket      = 0;
+        DWORD connect     = 0;
+        DWORD send        = 0;
+        DWORD recv        = 0;
+        DWORD closesocket = 0;
+        DWORD htons       = 0;
+        DWORD inet_addr   = 0;
     }       PSocketFunctionAddress;
 #endif
 

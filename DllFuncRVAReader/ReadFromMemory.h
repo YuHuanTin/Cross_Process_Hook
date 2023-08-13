@@ -12,9 +12,9 @@ public:
 
     bool initSearch(const std::string &DllName) override;
 
-    [[nodiscard]] std::optional<LPVOID> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const override;
+    [[nodiscard]] std::optional<std::size_t> searchRVA(const std::string &FunctionName, bool WithBaseAddress) const override;
 
-    [[nodiscard]] std::optional<LPVOID> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
+    [[nodiscard]] std::optional<std::size_t> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
 
     ~ReadFromMemory() override = default;
 

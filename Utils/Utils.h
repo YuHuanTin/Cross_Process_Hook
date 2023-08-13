@@ -19,21 +19,21 @@ struct AutoDelete_CloseHandle {
 
 class AutoDelete_FreeMemory {
 private:
-    HANDLE m_processHandle;
-    LPVOID m_allocAddr;
+    HANDLE      m_processHandle;
+    std::size_t m_allocAddr;
 
 public:
-    AutoDelete_FreeMemory(HANDLE ProcessHandle, LPVOID Address)
+    AutoDelete_FreeMemory(HANDLE ProcessHandle, std::size_t Address)
             : m_processHandle(ProcessHandle),
               m_allocAddr(Address) {}
 
-    [[nodiscard]] LPVOID getAddr() const noexcept {
+    [[nodiscard]] std::size_t getAddr() const noexcept {
         return m_allocAddr;
     }
 
     ~AutoDelete_FreeMemory() {
         // 如果失败，我们也无法处理
-        VirtualFreeEx(m_processHandle, m_allocAddr, 0, MEM_RELEASE);
+        VirtualFreeEx(m_processHandle, (LPVOID) m_allocAddr, 0, MEM_RELEASE);
     }
 };
 
@@ -54,14 +54,14 @@ namespace Utils {
          *
          * @tparam ElementType
          * @param ProcessHandle
-         * @param Address
+         * @param Addr
          * @param NumbOfType
          * @return
          */
         template<typename ElementType>
-        std::unique_ptr<ElementType[]> readMemory(HANDLE ProcessHandle, LPVOID Address, std::size_t NumbOfType) {
+        std::unique_ptr<ElementType[]> readMemory(HANDLE ProcessHandle, std::size_t Addr, std::size_t NumbOfType) {
             auto ptr = Utils::AutoPtr::makeElementArray<ElementType>(NumbOfType);
-            if (!ReadProcessMemory(ProcessHandle, Address, ptr.get(), sizeof(ElementType) * NumbOfType, nullptr)) {
+            if (!ReadProcessMemory(ProcessHandle,(LPCVOID) Addr, ptr.get(), sizeof(ElementType) * NumbOfType, nullptr)) {
                 throw MyException("ReadProcessMemory", GetLastError(), __FUNCTION__);
             }
             return ptr;
@@ -72,13 +72,13 @@ namespace Utils {
          *
          * @tparam ElementType
          * @param ProcessHandle
-         * @param Address
+         * @param Addr
          * @param Data
          * @param NumbOfByte
          */
         template<typename ElementType>
-        void writeMemory(HANDLE ProcessHandle, LPVOID Address, ElementType Data[], std::size_t NumbOfByte) {
-            if (!WriteProcessMemory(ProcessHandle, Address, Data, NumbOfByte, nullptr)) {
+        void writeMemory(HANDLE ProcessHandle, std::size_t Addr, ElementType Data[], std::size_t NumbOfByte) {
+            if (!WriteProcessMemory(ProcessHandle, (LPVOID) Addr, Data, NumbOfByte, nullptr)) {
                 throw MyException("WriteProcessMemory", GetLastError(), __FUNCTION__);
             }
         }
@@ -89,9 +89,9 @@ namespace Utils {
 
         std::unique_ptr<std::remove_pointer_t<HANDLE>, AutoDelete_CloseHandle> getProcessHandle(DWORD ProcessID) noexcept;
 
-        void loadDll(HANDLE ProcessHandle, LPVOID LoadlibraryAddr, const std::string &DllPath);
+        void loadDll(HANDLE ProcessHandle, std::size_t LoadlibraryAddr, const std::string &DllPath);
 
-        void freeDll(HANDLE ProcessHandle, LPVOID FreelibraryAddr, HMODULE DllModule);
+        void freeDll(HANDLE ProcessHandle, std::size_t FreelibraryAddr, HMODULE DllModule);
 
         /**
          * 一定有值，否则异常，不需要判断是否有值

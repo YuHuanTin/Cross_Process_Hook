@@ -18,7 +18,7 @@ public:
 
     void injectControlBlock();
 
-    [[nodiscard]] LPVOID getControlBlockRemoteAddr() const noexcept;
+    [[nodiscard]] std::size_t getControlBlockRemoteAddr() const noexcept;
 
     std::unique_ptr<ControlBlock> &getControlBlockRef() noexcept;
 
@@ -33,8 +33,8 @@ protected:
     std::unique_ptr<AutoDelete_FreeMemory> m_controlAddr;       // 控制块在目标进程的内存地址
 
     std::vector<std::string> m_hookLoadDlls;            // 保存需要释放的dll
-    LPVOID                   m_loadLibraryAddr = 0;
-    LPVOID                   m_freeLibraryAddr = 0;
+    std::size_t              m_loadLibraryAddr = 0;
+    std::size_t              m_freeLibraryAddr = 0;
 };
 
 

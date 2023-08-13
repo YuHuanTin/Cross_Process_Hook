@@ -55,18 +55,18 @@ namespace Utils {
             return Utils::AutoPtr::moveHandleOwner(OpenProcess(PROCESS_ALL_ACCESS, FALSE, ProcessID));
         }
 
-        void loadDll(HANDLE ProcessHandle, LPVOID LoadlibraryAddr, const std::string &DllPath) {
+        void loadDll(HANDLE ProcessHandle, std::size_t LoadlibraryAddr, const std::string &DllPath) {
             auto allocMemoryAddr = allocMemory(ProcessHandle);
 
             DWORD oldProtect = 0;
-            if (!VirtualProtectEx(ProcessHandle, allocMemoryAddr->getAddr(), 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+            if (!VirtualProtectEx(ProcessHandle, (LPVOID) allocMemoryAddr->getAddr(), 0x1000, PAGE_EXECUTE_READWRITE, &oldProtect)) {
                 throw MyException("VirtualProtectEx", GetLastError(), __FUNCTION__);
             }
 
             writeMemory(ProcessHandle, allocMemoryAddr->getAddr(), DllPath.data(), DllPath.size());
 
             auto hThread = Utils::AutoPtr::moveHandleOwner(
-                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddr, allocMemoryAddr->getAddr(), 0, NULL)
+                    CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) LoadlibraryAddr, (LPVOID) allocMemoryAddr->getAddr(), 0, NULL)
             );
             if (hThread.get() == INVALID_HANDLE_VALUE) {
                 throw MyException("CreateRemoteThread", GetLastError(), __FUNCTION__);
@@ -74,7 +74,7 @@ namespace Utils {
             WaitForSingleObject(hThread.get(), INFINITE);
         }
 
-        void freeDll(HANDLE ProcessHandle, LPVOID FreelibraryAddr, HMODULE DllModule) {
+        void freeDll(HANDLE ProcessHandle, std::size_t FreelibraryAddr, HMODULE DllModule) {
             auto hThread = Utils::AutoPtr::moveHandleOwner(
                     CreateRemoteThread(ProcessHandle, nullptr, 0, (LPTHREAD_START_ROUTINE) FreelibraryAddr, DllModule, 0, NULL)
             );
@@ -88,7 +88,7 @@ namespace Utils {
             if (!addr)
                 throw MyException("VirtualAllocEx", GetLastError(), __FUNCTION__);
 
-            return std::make_unique<AutoDelete_FreeMemory>(ProcessHandle, addr);
+            return std::make_unique<AutoDelete_FreeMemory>(ProcessHandle, (std::size_t) addr);
         }
     }
 

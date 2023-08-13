@@ -18,14 +18,14 @@ struct parseRetType {
  * @param ModuleBaseAddr
  * @return
  */
-std::pair<LPVOID, DWORD> getPEAddressWithSize(HANDLE ProcessHandle, DWORD ModuleBaseAddr) {
+std::pair<std::size_t, DWORD> getPEAddrWithSize(HANDLE ProcessHandle, std::size_t ModuleBaseAddr) {
     MEMORY_BASIC_INFORMATION basicInformation;
 
     DWORD retSize = VirtualQueryEx(ProcessHandle, (LPCVOID) ModuleBaseAddr, &basicInformation, sizeof(MEMORY_BASIC_INFORMATION));
     if (retSize == 0) {
         throw MyException("VirtualQueryEx", GetLastError(), __FUNCTION__);
     }
-    return {basicInformation.BaseAddress, basicInformation.RegionSize};
+    return {(std::size_t) basicInformation.BaseAddress, basicInformation.RegionSize};
 }
 
 /**
@@ -37,7 +37,7 @@ std::pair<LPVOID, DWORD> getPEAddressWithSize(HANDLE ProcessHandle, DWORD Module
  * @param PESize
  * @return
  */
-std::pair<DWORD, DWORD> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, LPVOID PEAddr, DWORD PESize) {
+std::pair<DWORD, DWORD> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, std::size_t PEAddr, DWORD PESize) {
     auto memoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddr, PESize);
 
     // ªÒ»° dos Õ∑
@@ -64,9 +64,8 @@ std::pair<DWORD, DWORD> getExportDirectoryRvaAndSize(HANDLE ProcessHandle, LPVOI
  * @param ExportDirectorySize
  * @return
  */
-parseRetType parseExportDirectory(HANDLE ProcessHandle, LPVOID PEAddr, DWORD ExportDirectoryRVA, DWORD ExportDirectorySize) {
-    auto exportDirectoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, (LPVOID) ((std::size_t) PEAddr + ExportDirectoryRVA),
-                                                                         ExportDirectorySize);
+parseRetType parseExportDirectory(HANDLE ProcessHandle, std::size_t PEAddr, DWORD ExportDirectoryRVA, DWORD ExportDirectorySize) {
+    auto exportDirectoryData = Utils::RemoteProcess::readMemory<uint8_t>(ProcessHandle, PEAddr + ExportDirectoryRVA, ExportDirectorySize);
 
     IMAGE_EXPORT_DIRECTORY exportDirectory;
     exportDirectory = *(IMAGE_EXPORT_DIRECTORY *) exportDirectoryData.get();
@@ -103,7 +102,7 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     auto processModule = isDllLoaded(DllName);
     if (!processModule)
         return false;
-    auto peSegmentAddressWithSize  = getPEAddressWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
+    auto peSegmentAddressWithSize  = getPEAddrWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
     auto exportDirectoryRvaAndSize = getExportDirectoryRvaAndSize(m_processHandle, peSegmentAddressWithSize.first, peSegmentAddressWithSize.second);
     auto parseResult               = parseExportDirectory(m_processHandle, peSegmentAddressWithSize.first, exportDirectoryRvaAndSize.first,
                                                           exportDirectoryRvaAndSize.second);
@@ -116,16 +115,16 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     return true;
 }
 
-std::optional<LPVOID> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
+std::optional<std::size_t> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
     auto it = m_functionNameToOrd.find(FunctionName);
     if (it != m_functionNameToOrd.end())
-        return (LPVOID) (m_functionOrdToRva.at(it->second) + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0));
+        return m_functionOrdToRva.at(it->second) + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0);
     return std::nullopt;
 }
 
-std::optional<LPVOID> ReadFromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
+std::optional<std::size_t> ReadFromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
     auto it = m_functionOrdToRva.find(FunctionOrd - m_exportDirectoryOrdBase);
     if (it != m_functionOrdToRva.end())
-        return (LPVOID) (it->second + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0));
+        return it->second + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0);
     return std::nullopt;
 }

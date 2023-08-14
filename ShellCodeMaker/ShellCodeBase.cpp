@@ -83,13 +83,13 @@ std::vector<std::uint8_t> &ShellCodeBase::insertPushadAndPopad(std::vector<std::
  * @param SignSize
  * @return
  */
-std::pair<DWORD, DWORD> ShellCodeBase::getFuncAddressAndSize(DWORD FunPtr, const std::uint8_t *EndSign, std::size_t SignSize) {
+std::pair<std::size_t, std::size_t> ShellCodeBase::getFuncAddrAndSize(std::size_t FunPtr, const std::uint8_t *EndSign, std::size_t SignSize) {
     std::size_t functionSize = 0;
 
     // 增量链接(debug模式) 需要 jmp 到函数实际地址再计算
     if (*(uint8_t *) (FunPtr) == 0xE9) {
-        DWORD offset = *(DWORD *) (FunPtr + 1) + 5;
-        FunPtr = (DWORD) (FunPtr + offset);
+        std::size_t offset = *(std::size_t *) (FunPtr + 1) + 5;
+        FunPtr = (std::size_t) (FunPtr + offset);
     }
     while (true) {
         std::size_t sameSignSize = 0;
@@ -128,11 +128,11 @@ std::pair<DWORD, DWORD> ShellCodeBase::getFuncAddressAndSize(DWORD FunPtr, const
  * @param PatchValue
  * @return
  */
-DWORD ShellCodeBase::patchAddress(std::uint8_t *DataPtr, std::size_t Begin, std::size_t End, DWORD Sign, DWORD PatchValue) {
+std::size_t ShellCodeBase::patchAddress(std::uint8_t *DataPtr, std::size_t Begin, std::size_t End, std::size_t Sign, std::size_t PatchValue) {
     for (std::size_t i = Begin; i < End; ++i) {
-        DWORD &value = *(DWORD *) (DataPtr + i);
-        if (value == Sign) {
-            value = PatchValue;
+        std::size_t *value = (std::size_t *) (DataPtr + i);
+        if (*value == Sign) {
+            *value = PatchValue;
             return i;
         }
     }

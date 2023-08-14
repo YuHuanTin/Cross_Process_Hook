@@ -34,18 +34,18 @@ struct ControlBlock {
 
     struct SocketFunctionAddress {
         /// ucrtbase.dll
-        DWORD malloc      = 0;
-        DWORD free        = 0;
+        std::size_t malloc      = 0;
+        std::size_t free        = 0;
         /// ws2_32.dll
-        DWORD WSAStartup  = 0;
-        DWORD WSACleanup  = 0;
-        DWORD socket      = 0;
-        DWORD connect     = 0;
-        DWORD send        = 0;
-        DWORD recv        = 0;
-        DWORD closesocket = 0;
-        DWORD htons       = 0;
-        DWORD inet_addr   = 0;
+        std::size_t WSAStartup  = 0;
+        std::size_t WSACleanup  = 0;
+        std::size_t socket      = 0;
+        std::size_t connect     = 0;
+        std::size_t send        = 0;
+        std::size_t recv        = 0;
+        std::size_t closesocket = 0;
+        std::size_t htons       = 0;
+        std::size_t inet_addr   = 0;
     }       PSocketFunctionAddress;
 #endif
 

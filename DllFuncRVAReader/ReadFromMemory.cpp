@@ -102,7 +102,7 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     auto processModule = isDllLoaded(DllName);
     if (!processModule)
         return false;
-    auto peSegmentAddressWithSize  = getPEAddrWithSize(m_processHandle, (DWORD) processModule->modBaseAddr);
+    auto peSegmentAddressWithSize  = getPEAddrWithSize(m_processHandle, (std::size_t) processModule->modBaseAddr);
     auto exportDirectoryRvaAndSize = getExportDirectoryRvaAndSize(m_processHandle, peSegmentAddressWithSize.first, peSegmentAddressWithSize.second);
     auto parseResult               = parseExportDirectory(m_processHandle, peSegmentAddressWithSize.first, exportDirectoryRvaAndSize.first,
                                                           exportDirectoryRvaAndSize.second);

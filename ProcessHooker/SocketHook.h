@@ -12,11 +12,11 @@ public:
 
     explicit SocketHook(DWORD ProcessID);
 
-    void addHook(DWORD HookAddr, std::size_t HookLen) override;
+    void addHook(std::size_t HookAddr, std::size_t HookLen) override;
 
     void commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) override;
 
-    void deleteHook(DWORD HookAddress) override;
+    void deleteHook(std::size_t HookAddress) override;
 
     ~SocketHook() override;
 

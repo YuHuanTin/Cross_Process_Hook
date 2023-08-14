@@ -18,11 +18,11 @@ public:
 
     explicit ProcessHookBase(DWORD ProcessID);
 
-    virtual void addHook(DWORD HookAddr, std::size_t HookLen) = 0;
+    virtual void addHook(std::size_t HookAddr, std::size_t HookLen) = 0;
 
     virtual void commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) = 0;
 
-    virtual void deleteHook(DWORD HookAddress) = 0;
+    virtual void deleteHook(std::size_t HookAddress) = 0;
 
     virtual ~ProcessHookBase();
 

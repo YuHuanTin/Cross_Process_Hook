@@ -83,12 +83,12 @@ namespace Utils {
             WaitForSingleObject(hThread.get(), INFINITE);
         }
 
-        std::unique_ptr<AutoDelete_FreeMemory> allocMemory(HANDLE ProcessHandle, DWORD Size) {
+        std::unique_ptr<AutoDelete_AllocMemory> allocMemory(HANDLE ProcessHandle, DWORD Size) {
             LPVOID addr = VirtualAllocEx(ProcessHandle, nullptr, Size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
             if (!addr)
                 throw MyException("VirtualAllocEx", GetLastError(), __FUNCTION__);
 
-            return std::make_unique<AutoDelete_FreeMemory>(ProcessHandle, (std::size_t) addr);
+            return std::make_unique<AutoDelete_AllocMemory>(ProcessHandle, (std::size_t) addr);
         }
     }
 

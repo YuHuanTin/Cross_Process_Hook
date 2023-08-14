@@ -54,18 +54,18 @@ void socketShellCodeX86() {
     SOCKET *hSocket           = (SOCKET *) (controlBlockAddr + offsetof(ControlBlock, hSocket));
     /// ^^^ 获取控制块参数
     /// vvv 获取所需函数地址
-    auto   socketFunctionAddr = (DWORD) controlBlockAddr + offsetof(ControlBlock, PSocketFunctionAddress);
-    auto   lpMalloc           = (malloc *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, malloc));
-    auto   lpFree             = (free *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, free));
-    auto   lpWSAStartup       = (WSAStartup *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, WSAStartup));
-    auto   lpWSACleanup       = (WSACleanup *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, WSACleanup));
-    auto   lpSocket           = (socket *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, socket));
-    auto   lpConnect          = (connect *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, connect));
-    auto   lpSend             = (send *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, send));
-    auto   lpRecv             = (recv *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, recv));
-    auto   lpClosesocket      = (closesocket *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, closesocket));
-    auto   lpHtons            = (htons *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, htons));
-//    auto   lpInet_addr        = (inet_addr *) *(DWORD *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, inet_addr));
+    auto   socketFunctionAddr = (std::size_t) controlBlockAddr + offsetof(ControlBlock, PSocketFunctionAddress);
+    auto   lpMalloc           = (malloc *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, malloc));
+    auto   lpFree             = (free *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, free));
+    auto   lpWSAStartup       = (WSAStartup *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, WSAStartup));
+    auto   lpWSACleanup       = (WSACleanup *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, WSACleanup));
+    auto   lpSocket           = (socket *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, socket));
+    auto   lpConnect          = (connect *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, connect));
+    auto   lpSend             = (send *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, send));
+    auto   lpRecv             = (recv *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, recv));
+    auto   lpClosesocket      = (closesocket *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, closesocket));
+    auto   lpHtons            = (htons *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, htons));
+//    auto   lpInet_addr        = (inet_addr *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, inet_addr));
     /// ^^^ 获取所需函数地址
 
     /// 建立socket
@@ -142,9 +142,9 @@ void socketShellCodeX86() {
 
 /// shell code base end
 
-std::vector<std::uint8_t> SocketShellCodeX86::makeShellCode(DWORD ControlBlockAddr, DWORD RegisterStorageAddr) {
+std::vector<std::uint8_t> SocketShellCodeX86::makeShellCode(std::size_t ControlBlockAddr, std::size_t RegisterStorageAddr) {
     std::uint8_t endSign[]          = {0x90, 0x90};
-    auto         funBeginAddAndSize = getFuncAddressAndSize((DWORD) socketShellCodeX86, endSign, 2);
+    auto         funBeginAddAndSize = getFuncAddrAndSize((std::size_t) socketShellCodeX86, endSign, 2);
 
     std::vector<std::uint8_t> codeBytes(funBeginAddAndSize.second);
     memcpy(codeBytes.data(), (void *) funBeginAddAndSize.first, funBeginAddAndSize.second);
@@ -152,8 +152,8 @@ std::vector<std::uint8_t> SocketShellCodeX86::makeShellCode(DWORD ControlBlockAd
     // 找到第一个 0xCCCCCCCC 替换为控制块的地址
     // 找到第二个 0xCCCCCCCC 替换为保存寄存器的地址
     std::size_t patchPos = 0;
-    patchPos = patchAddress(codeBytes.data(), patchPos, codeBytes.size() - sizeof(DWORD) + 1, 0x99999999, ControlBlockAddr);
-    patchAddress(codeBytes.data(), patchPos + sizeof(DWORD), codeBytes.size() - sizeof(DWORD) + 1, 0x99999999, RegisterStorageAddr);
+    patchPos = patchAddress(codeBytes.data(), patchPos, codeBytes.size() - sizeof(std::size_t) + 1, 0x99999999, ControlBlockAddr);
+    patchAddress(codeBytes.data(), patchPos + sizeof(std::size_t), codeBytes.size() - sizeof(std::size_t) + 1, 0x99999999, RegisterStorageAddr);
 
     return insertPushadAndPopad(insertRegisterSaveCode(codeBytes));
 }

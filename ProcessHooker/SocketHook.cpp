@@ -16,7 +16,7 @@ SocketHook::SocketHook(DWORD ProcessID) : ProcessHookBase(ProcessID) {
     m_controlBlock->injectControlBlock();
 }
 
-void SocketHook::addHook(DWORD HookAddr, std::size_t HookLen) {
+void SocketHook::addHook(std::size_t HookAddr, std::size_t HookLen) {
     auto hookPoint = std::make_unique<HookPoint>(
             m_processID,
             m_controlBlock->getControlBlockRemoteAddr(),
@@ -132,7 +132,7 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
     });
 }
 
-void SocketHook::deleteHook(DWORD HookAddress) {
+void SocketHook::deleteHook(std::size_t HookAddress) {
     for (std::size_t i = 0; i < m_hooks.size(); ++i) {
         if (HookAddress == m_hooks.at(i)->getHookAddr()) {
             m_hooks.at(i)->recoverCodeJmp();
@@ -152,8 +152,8 @@ SocketHook::~SocketHook() {
             one->recoverCodeJmp();
         }
         // 关闭目标进程的socket
-        DWORD closeSocket = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.closesocket;
-        DWORD wsaCleanup  = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.WSACleanup;
+        std::size_t closeSocket = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.closesocket;
+        std::size_t wsaCleanup  = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.WSACleanup;
         auto  hSocket     = Utils::RemoteProcess::readMemory<SOCKET>(
                 m_processHandle,
                 m_controlBlock->getControlBlockRemoteAddr() + offsetof(ControlBlock, hSocket),

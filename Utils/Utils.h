@@ -17,13 +17,13 @@ struct AutoDelete_CloseHandle {
     }
 };
 
-class AutoDelete_FreeMemory {
+class AutoDelete_AllocMemory {
 private:
     HANDLE      m_processHandle;
     std::size_t m_allocAddr;
 
 public:
-    AutoDelete_FreeMemory(HANDLE ProcessHandle, std::size_t Address)
+    AutoDelete_AllocMemory(HANDLE ProcessHandle, std::size_t Address)
             : m_processHandle(ProcessHandle),
               m_allocAddr(Address) {}
 
@@ -31,7 +31,7 @@ public:
         return m_allocAddr;
     }
 
-    ~AutoDelete_FreeMemory() {
+    AutoDelete_AllocMemory() {
         // 如果失败，我们也无法处理
         VirtualFreeEx(m_processHandle, (LPVOID) m_allocAddr, 0, MEM_RELEASE);
     }
@@ -100,7 +100,7 @@ namespace Utils {
          * @param Size
          * @return
          */
-        std::unique_ptr<AutoDelete_FreeMemory> allocMemory(HANDLE ProcessHandle, DWORD Size = 0x1000);
+        std::unique_ptr<AutoDelete_AllocMemory> allocMemory(HANDLE ProcessHandle, DWORD Size = 0x1000);
     }
 
     namespace String {

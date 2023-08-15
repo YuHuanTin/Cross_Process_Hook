@@ -1,33 +1,32 @@
 
 
 #include <WinSock2.h>
-#include "SocketHook.h"
-#include "../ShellCodeMaker/SocketShellCodeX86.h"
-#include "../Utils/Utils.h"
-#include "../ControlBlockManager/SocketControlBlock.h"
+#include "Hook_Socket_TCP.h"
+#include "ShellCodeMaker/ShellCode_Socket_TCP_X86.h"
+#include "ControlBlockManager/ControlBlock_Socket_TCP.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
-SocketHook::SocketHook(const std::string &ProcessName) : SocketHook(Utils::RemoteProcess::getProcessID(ProcessName).value()) {}
+Hook_Socket_TCP::Hook_Socket_TCP(const std::string &ProcessName) : Hook_Socket_TCP(Utils::RemoteProcess::getProcessID(ProcessName).value()) {}
 
-SocketHook::SocketHook(DWORD ProcessID) : ProcessHookBase(ProcessID) {
-    m_controlBlock = std::make_unique<SocketControlBlock>(m_processID);
+Hook_Socket_TCP::Hook_Socket_TCP(DWORD ProcessID) : HookBase(ProcessID) {
+    m_controlBlock = std::make_unique<ControlBlock_Socket_TCP>(m_processID);
     m_controlBlock->fillControlBlockArgs();
     m_controlBlock->injectControlBlock();
 }
 
-void SocketHook::addHook(std::size_t HookAddr, std::size_t HookLen) {
+void Hook_Socket_TCP::addHook(std::size_t HookAddr, std::size_t HookLen) {
     auto hookPoint = std::make_unique<HookPoint>(
             m_processID,
             m_controlBlock->getControlBlockRemoteAddr(),
             HookAddr,
             HookLen,
-            std::make_unique<SocketShellCodeX86>());
+            std::make_unique<ShellCode_Socket_TCP_X86>());
 
     m_hooks.emplace_back(std::move(hookPoint));
 }
 
-void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) {
+void Hook_Socket_TCP::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvData) {
     // 填充 jmp 到shellcode地址
     for (auto &hook: m_hooks) {
         hook->coverCodeJmp();
@@ -132,7 +131,7 @@ void SocketHook::commitHook(std::function<bool(HANDLE, DataBuffer *)> FuncRecvDa
     });
 }
 
-void SocketHook::deleteHook(std::size_t HookAddress) {
+void Hook_Socket_TCP::deleteHook(std::size_t HookAddress) {
     for (std::size_t i = 0; i < m_hooks.size(); ++i) {
         if (HookAddress == m_hooks.at(i)->getHookAddr()) {
             m_hooks.at(i)->recoverCodeJmp();
@@ -143,18 +142,16 @@ void SocketHook::deleteHook(std::size_t HookAddress) {
 }
 
 /// 至少在析构前完成一次消息接收，否则阻塞在accept
-SocketHook::~SocketHook() {
+Hook_Socket_TCP::~Hook_Socket_TCP() {
     if (m_socketRecvThread.joinable()) {
-        m_socketRecvThread.join();
-
-        // 显式删除所有hook点防止再次进入目标进程的socket循环
-        for (auto &one: m_hooks) {
+        /// 显式删除所有hook点防止再次进入目标进程的socket循环
+        for (auto   &one: m_hooks) {
             one->recoverCodeJmp();
         }
-        // 关闭目标进程的socket
+        /// 关闭目标进程的socket
         std::size_t closeSocket = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.closesocket;
         std::size_t wsaCleanup  = m_controlBlock->getControlBlockRef()->PSocketFunctionAddress.WSACleanup;
-        auto  hSocket     = Utils::RemoteProcess::readMemory<SOCKET>(
+        auto        hSocket     = Utils::RemoteProcess::readMemory<SOCKET>(
                 m_processHandle,
                 m_controlBlock->getControlBlockRemoteAddr() + offsetof(ControlBlock, hSocket),
                 1
@@ -179,6 +176,8 @@ SocketHook::~SocketHook() {
                                                                      NULL)
         );
         WaitForSingleObject(hThread.get(), INFINITE);
+
+        m_socketRecvThread.join();
     }
 }
 

@@ -1,14 +1,14 @@
 
 
-#ifndef CROSS_PROCESS_HOOK_READFROMMEMORY_H
-#define CROSS_PROCESS_HOOK_READFROMMEMORY_H
+#ifndef CROSS_PROCESS_HOOK_READER_FROMMEMORY_H
+#define CROSS_PROCESS_HOOK_READER_FROMMEMORY_H
 
 #include <unordered_map>
-#include "RVAReaderBase.h"
+#include "ReaderBase.h"
 
-class ReadFromMemory : public RVAReaderBase {
+class Reader_FromMemory : public ReaderBase {
 public:
-    using RVAReaderBase::RVAReaderBase;
+    using ReaderBase::ReaderBase;
 
     bool initSearch(const std::string &DllName) override;
 
@@ -16,7 +16,7 @@ public:
 
     [[nodiscard]] std::optional<std::size_t> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
 
-    ~ReadFromMemory() override = default;
+    ~Reader_FromMemory() override = default;
 
 private:
     LPVOID                                m_moduleBaseAddr         = nullptr;
@@ -26,4 +26,4 @@ private:
 };
 
 
-#endif //CROSS_PROCESS_HOOK_READFROMMEMORY_H
+#endif //CROSS_PROCESS_HOOK_READER_FROMMEMORY_H

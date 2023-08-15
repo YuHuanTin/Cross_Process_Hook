@@ -1,7 +1,7 @@
 
 
-#include "SocketShellCodeX86.h"
-#include "../DataStruct/DataStruct.h"
+#include "ShellCode_Socket_UDP_X86.h"
+#include "../../DataStruct/DataStruct.h"
 
 /// shell code base begin
 
@@ -10,7 +10,7 @@
 
 // 请在调用函数前就在函数头部填充 pushad
 __declspec(safebuffers)
-void socketShellCodeX86() {
+void udpX86() {
     /// ucrtbase.dll
     typedef void *__cdecl malloc(
             _In_ _CRT_GUARDOVERFLOW size_t Size);
@@ -25,20 +25,21 @@ void socketShellCodeX86() {
             _In_ int af,
             _In_ int type,
             _In_ int protocol);
-    typedef int           PASCAL FAR connect(
-            _In_ SOCKET s,
-            _In_reads_bytes_(namelen) const struct sockaddr FAR *name,
-            _In_ int namelen);
-    typedef int           PASCAL FAR send(
-            _In_ SOCKET s,
-            _In_reads_bytes_(len) const char FAR *buf,
-            _In_ int len,
-            _In_ int flags);
-    typedef int           PASCAL FAR recv(
+    typedef int           PASCAL FAR recvfrom(
             _In_ SOCKET s,
             _Out_writes_bytes_to_(len, return) __out_data_source(NETWORK) char FAR *buf,
             _In_ int len,
-            _In_ int flags);
+            _In_ int flags,
+            _Out_writes_bytes_to_opt_(*fromlen, *fromlen) struct sockaddr FAR *from,
+            _Inout_opt_ int FAR *fromlen);
+    typedef int           PASCAL FAR sendto(
+            _In_ SOCKET s,
+            _In_reads_bytes_(len) const char FAR *buf,
+            _In_ int len,
+            _In_ int flags,
+            _In_reads_bytes_opt_(tolen) const struct sockaddr FAR *to,
+            _In_ int tolen);
+
     typedef int           PASCAL FAR closesocket(IN SOCKET s);
     typedef int           PASCAL FAR WSACleanup(void);
     typedef u_short       PASCAL FAR htons(_In_ u_short hostshort);
@@ -60,19 +61,17 @@ void socketShellCodeX86() {
     auto   lpWSAStartup       = (WSAStartup *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, WSAStartup));
     auto   lpWSACleanup       = (WSACleanup *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, WSACleanup));
     auto   lpSocket           = (socket *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, socket));
-    auto   lpConnect          = (connect *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, connect));
-    auto   lpSend             = (send *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, send));
-    auto   lpRecv             = (recv *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, recv));
+    auto   lpSendto           = (sendto *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, sendto));
+    auto   lpRecvfrom         = (recvfrom *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, recvfrom));
     auto   lpClosesocket      = (closesocket *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, closesocket));
     auto   lpHtons            = (htons *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, htons));
-//    auto   lpInet_addr        = (inet_addr *) *(std::size_t *) (socketFunctionAddr + offsetof(ControlBlock::SocketFunctionAddress, inet_addr));
     /// ^^^ 获取所需函数地址
 
     /// 建立socket
     if (!*isSocketEstablish) {
         auto *allocWsaData = (WSAData *) lpMalloc(sizeof(WSAData));
         lpWSAStartup(MAKEWORD(2, 2), allocWsaData);
-        SOCKET socketHandle = lpSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        SOCKET socketHandle = lpSocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (socketHandle == INVALID_SOCKET) {
             lpWSACleanup();
             lpFree(allocWsaData);
@@ -80,55 +79,40 @@ void socketShellCodeX86() {
         }
         lpFree(allocWsaData);
 
-        auto *allocSockAddrIn = (sockaddr_in *) lpMalloc(sizeof(sockaddr_in));
-        allocSockAddrIn->sin_family           = AF_INET;
-        allocSockAddrIn->sin_port             = lpHtons(9999);
-        allocSockAddrIn->sin_addr.S_un.S_addr = 0x0100007F; // 127.0.0.1也可以写成 0x0100007F
-
-        if (lpConnect(socketHandle, (sockaddr *) allocSockAddrIn, sizeof(sockaddr)) == SOCKET_ERROR) {
-            lpClosesocket(socketHandle);
-            lpWSACleanup();
-            lpFree(allocSockAddrIn);
-            return;
-        }
-        lpFree(allocSockAddrIn);
 
         *hSocket           = socketHandle;
         *isSocketEstablish = true;
     }
     /// 收发消息
-    // 保存DataBuffer结构体数据
-    if (lpSend(*hSocket, (char *) registerStorageAddr, sizeof(DataBuffer), 0) == SOCKET_ERROR) {
+    auto *allocSockAddrIn = (sockaddr_in *) lpMalloc(sizeof(sockaddr_in));
+    allocSockAddrIn->sin_family           = AF_INET;
+    allocSockAddrIn->sin_port             = lpHtons(9999);
+    allocSockAddrIn->sin_addr.S_un.S_addr = 0x0100007F; // 127.0.0.1也可以写成 0x0100007F
+    if (lpSendto(*hSocket, (char *) registerStorageAddr, sizeof(DataBuffer), 0, (sockaddr *) allocSockAddrIn, sizeof(sockaddr_in)) <= 0) {
         lpClosesocket(*hSocket);
         lpWSACleanup();
         *isSocketEstablish = false;
+        lpFree(allocSockAddrIn);
         return;
     }
+
 
     // 不能使用 {0}，因为不能使用memset
     char      recvBuf[8];
     for (char &buf: recvBuf)
         buf = '\0';
 
-    if (lpRecv(*hSocket, recvBuf, sizeof(recvBuf), 0) == SOCKET_ERROR) {
+    int len = sizeof(sockaddr_in);
+    if (lpRecvfrom(*hSocket, recvBuf, sizeof(recvBuf), 0, (sockaddr *) allocSockAddrIn, &len) < 0) {
         lpClosesocket(*hSocket);
         lpWSACleanup();
         *isSocketEstablish = false;
+        lpFree(allocSockAddrIn);
         return;
     }
-//    const char  strReOK[] = {'R', 'e', 'O', 'K', '\0'};
-//    std::size_t sameLen   = 0;
-//
-//    for (std::size_t i = 0; i < sizeof(strReOK) / sizeof(strReOK[0]); ++i) {
-//        if (recvBuf[i] == strReOK[i])
-//            ++sameLen;
-//        else
-//            break;
-//    }
-//    if (sameLen == sizeof(strReOK) / sizeof(strReOK[0])) {
-//
-//    }
 
+    // 销毁端点
+    lpFree(allocSockAddrIn);
 
     __asm {
             nop
@@ -139,12 +123,11 @@ void socketShellCodeX86() {
 #pragma runtime_checks( "", restore )
 #pragma optimize( "", on )
 
-
 /// shell code base end
 
-std::vector<std::uint8_t> SocketShellCodeX86::makeShellCode(std::size_t ControlBlockAddr, std::size_t RegisterStorageAddr) {
+std::vector<std::uint8_t> ShellCode_Socket_UDP_X86::makeShellCode(std::size_t ControlBlockAddr, std::size_t RegisterStorageAddr) {
     std::uint8_t endSign[]          = {0x90, 0x90};
-    auto         funBeginAddAndSize = getFuncAddrAndSize((std::size_t) socketShellCodeX86, endSign, 2);
+    auto         funBeginAddAndSize = getFuncAddrAndSize((std::size_t) udpX86, endSign, 2);
 
     std::vector<std::uint8_t> codeBytes(funBeginAddAndSize.second);
     memcpy(codeBytes.data(), (void *) funBeginAddAndSize.first, funBeginAddAndSize.second);

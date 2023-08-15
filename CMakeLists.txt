@@ -8,31 +8,39 @@ find_package(fmt CONFIG REQUIRED)
 
 add_executable(Cross_Process_Hook
         sample.cpp
-        ShellCodeMaker/ShellCodeBase.h
-        ShellCodeMaker/ShellCodeBase.cpp
+        ProcessHooker/ShellCodeMaker/ShellCodeBase.h
+        ProcessHooker/ShellCodeMaker/ShellCodeBase.cpp
         DataStruct/DataStruct.h
-        DllFuncRVAReader/RVAReaderBase.cpp
-        DllFuncRVAReader/RVAReaderBase.h
+        ProcessHooker/ControlBlockManager/ModuleFuncAddrReader/ReaderBase.cpp
+        ProcessHooker/ControlBlockManager/ModuleFuncAddrReader/ReaderBase.h
         Utils/Utils.cpp
         Utils/Utils.h
-        ControlBlockManager/ControlBlockBase.cpp
-        ControlBlockManager/ControlBlockBase.h
+        ProcessHooker/ControlBlockManager/ControlBlockBase.cpp
+        ProcessHooker/ControlBlockManager/ControlBlockBase.h
         Utils/MyException.cpp
         Utils/MyException.h
-        DllFuncRVAReader/ReadFromFile.cpp
-        DllFuncRVAReader/ReadFromFile.h
-        DllFuncRVAReader/ReadFromMemory.cpp
-        DllFuncRVAReader/ReadFromMemory.h
-        ControlBlockManager/SocketControlBlock.cpp
-        ControlBlockManager/SocketControlBlock.h
-        ProcessHooker/ProcessHookBase.cpp
-        ProcessHooker/ProcessHookBase.h
-        ProcessHooker/SocketHook.cpp
-        ProcessHooker/SocketHook.h
-        ShellCodeMaker/SocketShellCodeX86.cpp
-        ShellCodeMaker/SocketShellCodeX86.h
+        ProcessHooker/ControlBlockManager/ModuleFuncAddrReader/Reader_FromFile.cpp
+        ProcessHooker/ControlBlockManager/ModuleFuncAddrReader/Reader_FromFile.h
+        ProcessHooker/ControlBlockManager/ModuleFuncAddrReader/Reader_FromMemory.cpp
+        ProcessHooker/ControlBlockManager/ModuleFuncAddrReader/Reader_FromMemory.h
+        ProcessHooker/ControlBlockManager/ControlBlock_Socket_TCP.cpp
+        ProcessHooker/ControlBlockManager/ControlBlock_Socket_TCP.h
+        ProcessHooker/HookBase.cpp
+        ProcessHooker/HookBase.h
+        ProcessHooker/Hook_Socket_TCP.cpp
+        ProcessHooker/Hook_Socket_TCP.h
+        ProcessHooker/Hook_Socket_UDP.cpp
+        ProcessHooker/Hook_Socket_UDP.h
         ProcessHooker/HookPoint.cpp
         ProcessHooker/HookPoint.h
+        ProcessHooker/ShellCodeMaker/ShellCode_Socket_TCP_X86.cpp
+        ProcessHooker/ShellCodeMaker/ShellCode_Socket_TCP_X86.h
+        ProcessHooker/ShellCodeMaker/ShellCode_Socket_UDP_X86.cpp
+        ProcessHooker/ShellCodeMaker/ShellCode_Socket_UDP_X86.h
+        ProcessHooker/ControlBlockManager/ControlBlock_Socket_UDP.cpp
+        ProcessHooker/ControlBlockManager/ControlBlock_Socket_UDP.h
 )
+
+
 
 target_link_libraries(Cross_Process_Hook fmt::fmt)

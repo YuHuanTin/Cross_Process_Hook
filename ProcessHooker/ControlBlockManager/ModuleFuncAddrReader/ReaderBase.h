@@ -1,7 +1,7 @@
 
 
-#ifndef CROSS_PROCESS_HOOK_RVAREADERBASE_H
-#define CROSS_PROCESS_HOOK_RVAREADERBASE_H
+#ifndef CROSS_PROCESS_HOOK_READERBASE_H
+#define CROSS_PROCESS_HOOK_READERBASE_H
 
 
 #include <string>
@@ -9,9 +9,9 @@
 #include <Windows.h>
 #include <TlHelp32.h>
 
-class RVAReaderBase {
+class ReaderBase {
 public:
-    explicit RVAReaderBase(DWORD ProcessID);
+    explicit ReaderBase(DWORD ProcessID);
 
     /**
      * 检测指定 dll 在进程中是否存在
@@ -46,7 +46,7 @@ public:
      */
     [[nodiscard]] virtual std::optional<std::size_t> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const = 0;
 
-    virtual ~RVAReaderBase();
+    virtual ~ReaderBase();
 
 protected:
     DWORD  m_processID     = 0;
@@ -54,4 +54,4 @@ protected:
 };
 
 
-#endif //CROSS_PROCESS_HOOK_RVAREADERBASE_H
+#endif //CROSS_PROCESS_HOOK_READERBASE_H

@@ -1,13 +1,13 @@
 
 
-#ifndef CROSS_PROCESS_HOOK_READFROMFILE_H
-#define CROSS_PROCESS_HOOK_READFROMFILE_H
+#ifndef CROSS_PROCESS_HOOK_READER_FROMFILE_H
+#define CROSS_PROCESS_HOOK_READER_FROMFILE_H
 
-#include "RVAReaderBase.h"
+#include "ReaderBase.h"
 
-class ReadFromFile : public RVAReaderBase {
+class Reader_FromFile : public ReaderBase {
 public:
-    using RVAReaderBase::RVAReaderBase;
+    using ReaderBase::ReaderBase;
 
     bool initSearch(const std::string &DllName) override;
 
@@ -15,11 +15,11 @@ public:
 
     [[nodiscard]] std::optional<std::size_t> searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const override;
 
-    ~ReadFromFile() override;
+    ~Reader_FromFile() override;
 
 private:
     HMODULE m_hmodule = nullptr;
 };
 
 
-#endif //CROSS_PROCESS_HOOK_READFROMFILE_H
+#endif //CROSS_PROCESS_HOOK_READER_FROMFILE_H

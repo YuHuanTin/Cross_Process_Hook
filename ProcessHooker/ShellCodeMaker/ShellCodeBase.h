@@ -2,7 +2,6 @@
 #define CROSS_PROCESS_HOOK_SHELLCODEBASE_H
 
 #include <vector>
-#include <Windows.h>
 
 class ShellCodeBase {
 public:

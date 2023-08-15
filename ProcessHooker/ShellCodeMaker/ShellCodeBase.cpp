@@ -1,7 +1,7 @@
 
 
 #include "ShellCodeBase.h"
-#include "../Utils/MyException.h"
+#include "../../Utils/MyException.h"
 
 /**
  * 保存寄存器到 $shellcode + 0xEF9 偏移处，即 RegisterStorageAddr 处，但是这里是写死的

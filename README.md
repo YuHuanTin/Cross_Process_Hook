@@ -7,7 +7,7 @@
 
     Using the tcp protocol can cause the data to be overwritten after the callback function is processed, so it may cause the program to freeze
 
-- [ ] UDP protocol (async):
+- [x] UDP protocol (async):
 
     Using the udp protocol allows the data to be overwritten without being processed by the callback function, so it is not safe for reading and writing register-based memory data (but reading registers is safe)
 
@@ -19,11 +19,6 @@
 - [ ] Without Mutex (async):
 
     Data may be overwritten
-
-### For Pipe:
-
-
-### For 
 
 ## Deprecate:
 

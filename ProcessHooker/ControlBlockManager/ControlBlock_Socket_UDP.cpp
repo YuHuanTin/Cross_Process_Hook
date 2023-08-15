@@ -1,9 +1,9 @@
 
 
-#include "SocketControlBlock.h"
-#include "../Utils/MyException.h"
+#include "ControlBlock_Socket_UDP.h"
+#include "../../Utils/MyException.h"
 
-void SocketControlBlock::fillControlBlockArgs() {
+void ControlBlock_Socket_UDP::fillControlBlockArgs() {
     // 如果找不到指定函数的地址则抛出异常
     try {
         const char *dlls[] = {"kernelbase.dll", "ws2_32.dll", "ucrtbase.dll"};
@@ -30,9 +30,8 @@ void SocketControlBlock::fillControlBlockArgs() {
         m_controlBlock->PSocketFunctionAddress.WSAStartup  = m_rvaReader->searchRVA("WSAStartup", true).value();
         m_controlBlock->PSocketFunctionAddress.WSACleanup  = m_rvaReader->searchRVA("WSACleanup", true).value();
         m_controlBlock->PSocketFunctionAddress.socket      = m_rvaReader->searchRVA("socket", true).value();
-        m_controlBlock->PSocketFunctionAddress.connect     = m_rvaReader->searchRVA("connect", true).value();
-        m_controlBlock->PSocketFunctionAddress.send        = m_rvaReader->searchRVA("send", true).value();
-        m_controlBlock->PSocketFunctionAddress.recv        = m_rvaReader->searchRVA("recv", true).value();
+        m_controlBlock->PSocketFunctionAddress.sendto      = m_rvaReader->searchRVA("sendto", true).value();
+        m_controlBlock->PSocketFunctionAddress.recvfrom    = m_rvaReader->searchRVA("recvfrom", true).value();
         m_controlBlock->PSocketFunctionAddress.closesocket = m_rvaReader->searchRVA("closesocket", true).value();
         m_controlBlock->PSocketFunctionAddress.htons       = m_rvaReader->searchRVA("htons", true).value();
         m_controlBlock->PSocketFunctionAddress.inet_addr   = m_rvaReader->searchRVA("inet_addr", true).value();

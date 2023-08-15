@@ -5,7 +5,7 @@ ControlBlockBase::ControlBlockBase(DWORD ProcessID)
         : m_processID(ProcessID),
           m_processHandle(OpenProcess(PROCESS_ALL_ACCESS, FALSE, m_processID)),
           m_controlBlock(std::make_unique<ControlBlock>()),
-          m_rvaReader(std::make_unique<ReadFromFile>(m_processID)) {}
+          m_rvaReader(std::make_unique<Reader_FromFile>(m_processID)) {}
 
 ControlBlockBase::~ControlBlockBase() {
     /// 释放目标进程因为 hook 而加载的 dll

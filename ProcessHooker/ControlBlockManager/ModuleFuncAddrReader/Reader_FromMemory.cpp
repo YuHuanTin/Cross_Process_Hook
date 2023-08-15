@@ -1,8 +1,8 @@
 
 
-#include "ReadFromMemory.h"
-#include "../Utils/Utils.h"
-#include "../Utils/MyException.h"
+#include "Reader_FromMemory.h"
+#include "../../../Utils/Utils.h"
+#include "../../../Utils/MyException.h"
 
 struct parseRetType {
     std::unordered_map<std::string, WORD> functionNameToOrd;
@@ -98,7 +98,7 @@ parseRetType parseExportDirectory(HANDLE ProcessHandle, std::size_t PEAddr, DWOR
 }
 
 
-bool ReadFromMemory::initSearch(const std::string &DllName) {
+bool Reader_FromMemory::initSearch(const std::string &DllName) {
     auto processModule = isDllLoaded(DllName);
     if (!processModule)
         return false;
@@ -115,14 +115,14 @@ bool ReadFromMemory::initSearch(const std::string &DllName) {
     return true;
 }
 
-std::optional<std::size_t> ReadFromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
+std::optional<std::size_t> Reader_FromMemory::searchRVA(const std::string &FunctionName, bool WithBaseAddress) const {
     auto it = m_functionNameToOrd.find(FunctionName);
     if (it != m_functionNameToOrd.end())
         return m_functionOrdToRva.at(it->second) + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0);
     return std::nullopt;
 }
 
-std::optional<std::size_t> ReadFromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
+std::optional<std::size_t> Reader_FromMemory::searchRVA(DWORD FunctionOrd, bool WithBaseAddress) const {
     auto it = m_functionOrdToRva.find(FunctionOrd - m_exportDirectoryOrdBase);
     if (it != m_functionOrdToRva.end())
         return it->second + (std::size_t) (WithBaseAddress ? m_moduleBaseAddr : 0);

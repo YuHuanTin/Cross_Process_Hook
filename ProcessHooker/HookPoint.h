@@ -9,7 +9,7 @@
 #include <Windows.h>
 
 #include "../Utils/Utils.h"
-#include "../ShellCodeMaker/ShellCodeBase.h"
+#include "ShellCodeMaker/ShellCodeBase.h"
 
 class HookPoint {
 private:

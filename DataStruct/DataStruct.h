@@ -7,7 +7,7 @@
 #include <Windows.h>
 
 enum HookMethod {
-    Socket, Pipe, Shared_Memory
+    Socket, Shared_Memory
 };
 
 struct ControlBlock {
@@ -40,12 +40,16 @@ struct ControlBlock {
         std::size_t WSAStartup  = 0;
         std::size_t WSACleanup  = 0;
         std::size_t socket      = 0;
-        std::size_t connect     = 0;
-        std::size_t send        = 0;
-        std::size_t recv        = 0;
         std::size_t closesocket = 0;
         std::size_t htons       = 0;
         std::size_t inet_addr   = 0;
+        // tcp
+        std::size_t connect     = 0;
+        std::size_t send        = 0;
+        std::size_t recv        = 0;
+        // udp
+        std::size_t sendto      = 0;
+        std::size_t recvfrom    = 0;
     }       PSocketFunctionAddress;
 #endif
 

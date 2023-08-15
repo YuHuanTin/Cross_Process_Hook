@@ -6,9 +6,9 @@
 #include <memory>
 #include <Windows.h>
 
-#include "../Utils/Utils.h"
-#include "../DataStruct/DataStruct.h"
-#include "../DllFuncRVAReader/ReadFromFile.h"
+#include "../../Utils/Utils.h"
+#include "../../DataStruct/DataStruct.h"
+#include "ModuleFuncAddrReader/Reader_FromFile.h"
 
 class ControlBlockBase {
 public:
@@ -29,7 +29,7 @@ protected:
     HANDLE m_processHandle = INVALID_HANDLE_VALUE;
 
     std::unique_ptr<ControlBlock>           m_controlBlock;      // 控制块的资源
-    std::unique_ptr<RVAReaderBase>          m_rvaReader;         // rvaReader的资源
+    std::unique_ptr<ReaderBase>             m_rvaReader;         // rvaReader的资源
     std::unique_ptr<AutoDelete_AllocMemory> m_controlAddr;       // 控制块在目标进程的内存地址
 
     std::vector<std::string> m_hookLoadDlls;            // 保存需要释放的dll

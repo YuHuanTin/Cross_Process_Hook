@@ -1,7 +1,7 @@
 
 
-#ifndef CROSS_PROCESS_HOOK_PROCESSHOOKBASE_H
-#define CROSS_PROCESS_HOOK_PROCESSHOOKBASE_H
+#ifndef CROSS_PROCESS_HOOK_HOOKBASE_H
+#define CROSS_PROCESS_HOOK_HOOKBASE_H
 
 #include <memory>
 #include <vector>
@@ -10,13 +10,13 @@
 #include <functional>
 
 #include "HookPoint.h"
-#include "../ControlBlockManager/ControlBlockBase.h"
+#include "ControlBlockManager/ControlBlockBase.h"
 
-class ProcessHookBase {
+class HookBase {
 public:
-    explicit ProcessHookBase(const std::string &ProcessName);
+    explicit HookBase(const std::string &ProcessName);
 
-    explicit ProcessHookBase(DWORD ProcessID);
+    explicit HookBase(DWORD ProcessID);
 
     virtual void addHook(std::size_t HookAddr, std::size_t HookLen) = 0;
 
@@ -24,7 +24,7 @@ public:
 
     virtual void deleteHook(std::size_t HookAddress) = 0;
 
-    virtual ~ProcessHookBase();
+    virtual ~HookBase();
 
 protected:
     DWORD  m_processID;
@@ -35,4 +35,4 @@ protected:
 };
 
 
-#endif //CROSS_PROCESS_HOOK_PROCESSHOOKBASE_H
+#endif //CROSS_PROCESS_HOOK_HOOKBASE_H
